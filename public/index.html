@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>文章收藏</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f5f5f0;
+      --surface: #ffffff;
+      --border: #e2e2dc;
+      --text: #1a1a1a;
+      --text-muted: #6b6b6b;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --danger: #dc2626;
+      --tag-bg: #dbeafe;
+      --tag-text: #1e40af;
+      --read-bg: #f0fdf4;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 1px 3px rgba(0,0,0,.06);
+    }
+    header h1 { font-size: 1.2rem; font-weight: 700; color: var(--accent); }
+    header .count { font-size: .85rem; color: var(--text-muted); margin-left: auto; }
+
+    .main { max-width: 860px; margin: 0 auto; padding: 24px 16px; }
+
+    /* Cards */
+    .add-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+    .add-card h2 { font-size: .95rem; font-weight: 600; margin-bottom: 14px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; }
+
+    .url-row { display: flex; gap: 8px; margin-bottom: 12px; }
+
+    input[type=text], input[type=url], textarea, select {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 12px;
+      font-size: .95rem;
+      font-family: inherit;
+      color: var(--text);
+      background: var(--surface);
+      width: 100%;
+      transition: border-color .15s;
+      outline: none;
+    }
+    input:focus, textarea:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,.1); }
+
+    .btn {
+      padding: 9px 18px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: .9rem;
+      font-weight: 600;
+      font-family: inherit;
+      transition: background .15s, opacity .15s;
+    }
+    .btn-primary { background: var(--accent); color: #fff; white-space: nowrap; }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn-outline:hover { background: var(--bg); }
+    .btn-danger { background: var(--danger); color: #fff; padding: 6px 12px; font-size: .8rem; }
+    .btn-danger:hover { opacity: .85; }
+
+    .form-row { display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+    .form-group { flex: 1; min-width: 160px; }
+    .form-group label { display: block; font-size: .82rem; font-weight: 600; margin-bottom: 5px; color: var(--text-muted); }
+
+    .stars-input { display: flex; gap: 4px; padding: 6px 0; }
+    .star-btn { background: none; border: none; cursor: pointer; font-size: 1.4rem; line-height: 1; padding: 0 2px; transition: transform .1s; }
+    .star-btn:hover { transform: scale(1.2); }
+
+    textarea { resize: vertical; min-height: 60px; }
+
+    /* ── Label Picker ── */
+    .label-picker { position: relative; }
+
+    .label-trigger {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 7px 10px;
+      min-height: 40px;
+      cursor: pointer;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      align-items: center;
+      transition: border-color .15s;
+      user-select: none;
+    }
+    .label-trigger:hover { border-color: #aaa; }
+    .label-trigger.open { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,.1); }
+    .label-trigger .placeholder { color: var(--text-muted); font-size: .9rem; }
+
+    .sel-chip {
+      background: var(--tag-bg);
+      color: var(--tag-text);
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: .78rem;
+      font-weight: 600;
+    }
+
+    .label-dropdown {
+      display: none;
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0; right: 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0,0,0,.12);
+      z-index: 200;
+      max-height: 260px;
+      overflow-y: auto;
+    }
+    .label-dropdown.open { display: block; }
+
+    .label-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+    .label-option:hover { background: var(--bg); }
+    .label-option input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; flex-shrink: 0; accent-color: var(--accent); }
+    .label-option .opt-name { flex: 1; font-size: .9rem; cursor: pointer; }
+    .del-label-btn {
+      background: none; border: none; cursor: pointer;
+      color: var(--text-muted); font-size: .85rem; font-weight: 700;
+      padding: 2px 6px; border-radius: 4px; line-height: 1;
+      flex-shrink: 0;
+    }
+    .del-label-btn:hover { background: #fee2e2; color: var(--danger); }
+
+    .label-empty { padding: 10px 12px; color: var(--text-muted); font-size: .85rem; }
+
+    .label-add-row {
+      display: flex;
+      gap: 6px;
+      padding: 8px;
+      border-top: 1px solid var(--border);
+      position: sticky;
+      bottom: 0;
+      background: var(--surface);
+    }
+    .label-add-row input { flex: 1; font-size: .85rem; }
+
+    /* Filters */
+    .filters {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 20px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: flex-end;
+    }
+    .filters .form-group { min-width: 130px; }
+    .filters input[type=text] { min-width: 200px; }
+
+    .tag-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+    .tag-chip {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 10px; border-radius: 999px;
+      background: var(--tag-bg); color: var(--tag-text);
+      font-size: .78rem; font-weight: 600;
+      cursor: pointer; border: 2px solid transparent;
+      transition: border-color .1s;
+    }
+    .tag-chip.active { border-color: var(--accent); }
+    .tag-chip:hover { border-color: #93c5fd; }
+
+    /* Article cards */
+    .articles-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .articles-header h3 { font-size: .9rem; font-weight: 600; color: var(--text-muted); }
+
+    .article-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 10px;
+      transition: box-shadow .15s, border-color .15s;
+    }
+    .article-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,.08); border-color: #c9c9c3; }
+    .article-card.is-read { background: var(--read-bg); }
+
+    .article-top { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
+    .article-title { flex: 1; font-size: 1rem; font-weight: 600; line-height: 1.4; }
+    .article-title a { color: var(--text); text-decoration: none; }
+    .article-title a:hover { color: var(--accent); text-decoration: underline; }
+    .article-stars { display: flex; gap: 1px; flex-shrink: 0; }
+
+    .article-meta {
+      display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+      font-size: .8rem; color: var(--text-muted); margin-bottom: 6px;
+    }
+    .article-url { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .article-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+    .article-tag {
+      background: var(--tag-bg); color: var(--tag-text);
+      border-radius: 999px; padding: 1px 8px; font-size: .75rem; font-weight: 600;
+      cursor: pointer;
+    }
+    .article-tag:hover { opacity: .75; }
+
+    .article-notes { font-size: .85rem; color: var(--text-muted); margin-top: 6px; white-space: pre-wrap; }
+
+    .article-actions { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
+    .btn-read {
+      padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border);
+      background: transparent; cursor: pointer; font-size: .78rem; font-family: inherit;
+    }
+    .btn-read:hover { background: var(--bg); }
+    .btn-read.marked { background: #dcfce7; border-color: #86efac; color: #166534; }
+    .btn-edit {
+      padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border);
+      background: transparent; cursor: pointer; font-size: .78rem; font-family: inherit;
+    }
+    .btn-edit:hover { background: var(--bg); }
+
+    /* Inline edit panel */
+    .edit-panel {
+      display: none; margin-top: 12px; padding-top: 12px;
+      border-top: 1px solid var(--border);
+      overflow: visible;
+    }
+    .edit-panel.open { display: block; }
+
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+    .empty-state .icon { font-size: 3rem; margin-bottom: 12px; }
+
+    .toast {
+      position: fixed; bottom: 24px; right: 24px;
+      background: #1a1a1a; color: #fff;
+      padding: 10px 18px; border-radius: 8px;
+      font-size: .88rem; opacity: 0;
+      transition: opacity .3s;
+      pointer-events: none; z-index: 999;
+    }
+    .toast.show { opacity: 1; }
+
+    @media (max-width: 600px) {
+      .url-row { flex-direction: column; }
+      .form-row { flex-direction: column; }
+      .filters { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>📚 文章收藏</h1>
+  <span class="count" id="articleCount"></span>
+</header>
+
+<div class="main">
+
+  <!-- Add Form -->
+  <div class="add-card">
+    <h2>新增文章</h2>
+    <div class="url-row">
+      <input type="url" id="urlInput" placeholder="貼上文章網址，自動抓取標題…" autocomplete="off">
+      <button class="btn btn-primary" id="fetchBtn" onclick="fetchTitle()">取得標題</button>
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="flex:2">
+        <label>標題</label>
+        <input type="text" id="titleInput" placeholder="文章標題">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>標籤</label>
+        <div class="label-picker">
+          <div class="label-trigger" id="labelTrigger-add" onclick="togglePicker('add')">
+            <span class="placeholder">選擇標籤…</span>
+          </div>
+          <div class="label-dropdown" id="labelDd-add">
+            <div id="labelOpts-add"></div>
+            <div class="label-add-row">
+              <input type="text" id="newLabel-add" placeholder="新增標籤名稱…"
+                onkeydown="if(event.key==='Enter'){event.preventDefault();createLabel('add')}"
+                onclick="event.stopPropagation()">
+              <button class="btn btn-outline" style="padding:6px 10px;white-space:nowrap"
+                onclick="createLabel('add');event.stopPropagation()">+ 新增</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="form-group" style="max-width:160px">
+        <label>重要程度</label>
+        <div class="stars-input" id="addStars">
+          <button class="star-btn" onclick="setAddStar(1)">⭐</button>
+          <button class="star-btn" onclick="setAddStar(2)">⭐</button>
+          <button class="star-btn" onclick="setAddStar(3)">⭐</button>
+        </div>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>備註</label>
+        <textarea id="notesInput" placeholder="可選填…"></textarea>
+      </div>
+    </div>
+    <div style="display:flex; gap:8px; justify-content:flex-end">
+      <button class="btn btn-outline" onclick="clearForm()">清除</button>
+      <button class="btn btn-primary" onclick="addArticle()">儲存文章</button>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters">
+    <div class="form-group">
+      <label>搜尋</label>
+      <input type="text" id="searchInput" placeholder="搜尋標題、網址、備註…" oninput="debounceLoad()">
+    </div>
+    <div class="form-group">
+      <label>重要程度</label>
+      <select id="filterImportance" onchange="loadArticles()">
+        <option value="">全部</option>
+        <option value="3">⭐⭐⭐ 三星</option>
+        <option value="2">⭐⭐ 二星</option>
+        <option value="1">⭐ 一星</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>排序</label>
+      <select id="filterSort" onchange="loadArticles()">
+        <option value="newest">最新加入</option>
+        <option value="oldest">最早加入</option>
+        <option value="importance">重要程度</option>
+      </select>
+    </div>
+    <button class="btn btn-outline" onclick="clearFilters()">清除篩選</button>
+  </div>
+
+  <!-- Label filter chips -->
+  <div class="tag-chips" id="tagChips"></div>
+
+  <!-- Articles -->
+  <div class="articles-header">
+    <h3 id="listLabel">所有文章</h3>
+  </div>
+  <div id="articleList"></div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── State ──
+let _labels = [];
+let _articles = [];
+let _pickerState = { add: new Set() };
+let addStarValue = 1;
+let activeTag = '';
+let debounceTimer;
+const editStarValues = {};
+
+// ── Stars ──
+function setAddStar(v) {
+  addStarValue = v;
+  document.querySelectorAll('#addStars .star-btn').forEach((btn, i) => {
+    btn.style.filter = i < v ? '' : 'grayscale(1) opacity(.3)';
+  });
+}
+setAddStar(1);
+
+function setEditStar(id, v) {
+  editStarValues[id] = v;
+  const container = document.getElementById(`estars-${id}`);
+  if (!container) return;
+  container.querySelectorAll('.star-btn').forEach((btn, i) => {
+    btn.style.filter = i < v ? '' : 'grayscale(1) opacity(.3)';
+  });
+}
+
+// ── Label Picker ──
+function getSelected(ctx) {
+  if (!_pickerState[ctx]) _pickerState[ctx] = new Set();
+  return _pickerState[ctx];
+}
+
+function togglePicker(ctx) {
+  const dd = document.getElementById(`labelDd-${ctx}`);
+  if (!dd) return;
+  const opening = !dd.classList.contains('open');
+  // close all dropdowns
+  document.querySelectorAll('.label-dropdown.open').forEach(d => {
+    d.classList.remove('open');
+    const t = document.getElementById('labelTrigger-' + d.id.replace('labelDd-', ''));
+    if (t) t.classList.remove('open');
+  });
+  if (opening) {
+    dd.classList.add('open');
+    document.getElementById(`labelTrigger-${ctx}`).classList.add('open');
+    renderLabelOptions(ctx);
+  }
+}
+
+function renderLabelOptions(ctx) {
+  const container = document.getElementById(`labelOpts-${ctx}`);
+  if (!container) return;
+  const selected = getSelected(ctx);
+  if (_labels.length === 0) {
+    container.innerHTML = '<div class="label-empty">尚無標籤，請新增</div>';
+    return;
+  }
+  container.innerHTML = _labels.map(l => `
+    <div class="label-option" onclick="toggleLabelCheck('${ctx}',${l.id},'${escJs(l.name)}');event.stopPropagation()">
+      <input type="checkbox" id="lchk-${ctx}-${l.id}"
+        ${selected.has(l.name) ? 'checked' : ''}
+        onclick="event.stopPropagation()"
+        onchange="toggleLabelCheck('${ctx}',${l.id},'${escJs(l.name)}')">
+      <span class="opt-name">${escHtml(l.name)}</span>
+      <button class="del-label-btn" onclick="deleteLabel(${l.id},event)" title="刪除標籤">×</button>
+    </div>
+  `).join('');
+}
+
+function renderPickerTrigger(ctx) {
+  const trigger = document.getElementById(`labelTrigger-${ctx}`);
+  if (!trigger) return;
+  const selected = getSelected(ctx);
+  if (selected.size === 0) {
+    trigger.innerHTML = '<span class="placeholder">選擇標籤…</span>';
+  } else {
+    trigger.innerHTML = [...selected].map(t => `<span class="sel-chip">${escHtml(t)}</span>`).join('');
+  }
+}
+
+function toggleLabelCheck(ctx, labelId, labelName) {
+  const selected = getSelected(ctx);
+  if (selected.has(labelName)) selected.delete(labelName);
+  else selected.add(labelName);
+  // sync checkbox state
+  const cb = document.getElementById(`lchk-${ctx}-${labelId}`);
+  if (cb) cb.checked = selected.has(labelName);
+  renderPickerTrigger(ctx);
+}
+
+async function createLabel(ctx) {
+  const input = document.getElementById(`newLabel-${ctx}`);
+  const name = input.value.trim();
+  if (!name) return;
+  const res = await fetch('/api/labels', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+  });
+  if (res.ok) {
+    const label = await res.json();
+    input.value = '';
+    await loadLabels();
+    // auto-select the new label in this picker
+    getSelected(ctx).add(label.name);
+    renderPickerTrigger(ctx);
+    renderLabelOptions(ctx);
+    showToast(`已新增標籤「${name}」`);
+  } else {
+    const err = await res.json();
+    showToast(err.error || '新增失敗');
+  }
+}
+
+async function deleteLabel(id, e) {
+  e.stopPropagation();
+  const label = _labels.find(l => l.id === id);
+  if (!label) return;
+  if (!confirm(`確定刪除標籤「${label.name}」？\n（不影響已儲存的文章記錄）`)) return;
+  await fetch(`/api/labels/${id}`, { method: 'DELETE' });
+  // remove from all picker states
+  Object.values(_pickerState).forEach(set => set.delete(label.name));
+  await loadLabels();
+  // refresh all open pickers
+  document.querySelectorAll('.label-dropdown.open').forEach(dd => {
+    const ctx = dd.id.replace('labelDd-', '');
+    renderLabelOptions(ctx);
+    renderPickerTrigger(ctx);
+  });
+  showToast(`已刪除標籤「${label.name}」`);
+}
+
+// close dropdown when clicking outside
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.label-picker')) {
+    document.querySelectorAll('.label-dropdown.open').forEach(d => d.classList.remove('open'));
+    document.querySelectorAll('.label-trigger.open').forEach(t => t.classList.remove('open'));
+  }
+});
+
+// ── URL / Title ──
+document.addEventListener('DOMContentLoaded', () => {
+  const urlInput = document.getElementById('urlInput');
+  urlInput.addEventListener('paste', (e) => {
+    const pasted = (e.clipboardData || window.clipboardData).getData('text').trim();
+    if (pasted.startsWith('http')) {
+      setTimeout(() => autoFetch(pasted), 50);
+    }
+  });
+  urlInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') addArticle();
+  });
+  document.getElementById('titleInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') addArticle();
+  });
+});
+
+async function autoFetch(url) {
+  const btn = document.getElementById('fetchBtn');
+  btn.disabled = true;
+  btn.textContent = '抓取中…';
+  try {
+    const res = await fetch('/api/fetch-title?url=' + encodeURIComponent(url));
+    const data = await res.json();
+    if (data.title) {
+      document.getElementById('titleInput').value = data.title;
+      document.getElementById('titleInput').focus();
+    } else {
+      showToast('無法自動取得標題，請手動輸入');
+      document.getElementById('titleInput').focus();
+    }
+  } catch {
+    showToast('網路錯誤，請手動輸入標題');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '取得標題';
+  }
+}
+
+async function fetchTitle() {
+  const url = document.getElementById('urlInput').value.trim();
+  if (!url) return showToast('請先輸入網址');
+  await autoFetch(url);
+}
+
+// ── Add Article ──
+async function addArticle() {
+  const url = document.getElementById('urlInput').value.trim();
+  const title = document.getElementById('titleInput').value.trim();
+  if (!url) return showToast('請輸入網址');
+  if (!title) return showToast('請輸入標題');
+
+  const tags = [...getSelected('add')].join(',');
+  const res = await fetch('/api/articles', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      url, title, tags,
+      importance: addStarValue,
+      notes: document.getElementById('notesInput').value.trim(),
+    }),
+  });
+
+  if (res.ok) {
+    showToast('文章已儲存');
+    clearForm();
+    loadArticles();
+  } else {
+    const err = await res.json();
+    showToast(err.error || '儲存失敗');
+  }
+}
+
+function clearForm() {
+  document.getElementById('urlInput').value = '';
+  document.getElementById('titleInput').value = '';
+  document.getElementById('notesInput').value = '';
+  _pickerState.add = new Set();
+  renderPickerTrigger('add');
+  renderLabelOptions('add');
+  setAddStar(1);
+}
+
+// ── Filters ──
+function debounceLoad() {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(loadArticles, 300);
+}
+
+function clearFilters() {
+  document.getElementById('searchInput').value = '';
+  document.getElementById('filterImportance').value = '';
+  document.getElementById('filterSort').value = 'newest';
+  activeTag = '';
+  renderTagChips();
+  loadArticles();
+}
+
+// ── Load Articles ──
+async function loadArticles() {
+  const q = document.getElementById('searchInput').value.trim();
+  const importance = document.getElementById('filterImportance').value;
+  const sort = document.getElementById('filterSort').value;
+
+  const params = new URLSearchParams();
+  if (q) params.set('q', q);
+  if (importance) params.set('importance', importance);
+  if (sort) params.set('sort', sort);
+  if (activeTag) params.set('tag', activeTag);
+
+  const res = await fetch('/api/articles?' + params);
+  _articles = await res.json();
+
+  document.getElementById('articleCount').textContent = `共 ${_articles.length} 篇`;
+  document.getElementById('listLabel').textContent =
+    (q || importance || activeTag) ? `篩選結果（${_articles.length} 篇）` : `所有文章（${_articles.length} 篇）`;
+
+  const list = document.getElementById('articleList');
+  if (_articles.length === 0) {
+    list.innerHTML = `<div class="empty-state"><div class="icon">📭</div><div>沒有符合的文章</div></div>`;
+    return;
+  }
+  list.innerHTML = _articles.map(a => renderCard(a)).join('');
+}
+
+// ── Render Card ──
+function renderCard(a) {
+  const stars = '⭐'.repeat(a.importance) + '<span style="opacity:.2">⭐</span>'.repeat(3 - a.importance);
+  const tags = a.tags ? a.tags.split(',').map(t => t.trim()).filter(Boolean)
+    .map(t => `<span class="article-tag" onclick="filterByTag('${escJs(t)}')">${escHtml(t)}</span>`).join('') : '';
+  const date = new Date(a.created_at).toLocaleDateString('zh-TW', { year:'numeric', month:'2-digit', day:'2-digit' });
+  const isRead = a.read_at ? 'is-read' : '';
+  const readClass = a.read_at ? 'btn-read marked' : 'btn-read';
+  const readLabel = a.read_at ? '✅ 已閱讀' : '標記已讀';
+  const notes = a.notes ? `<div class="article-notes">${escHtml(a.notes)}</div>` : '';
+
+  return `
+  <div class="article-card ${isRead}" id="card-${a.id}">
+    <div class="article-top">
+      <div class="article-title"><a href="${escHtml(a.url)}" target="_blank" rel="noopener">${escHtml(a.title)}</a></div>
+      <div class="article-stars">${stars}</div>
+    </div>
+    <div class="article-meta">
+      <span class="article-url">${escHtml(hostname(a.url))}</span>
+      <span>·</span>
+      <span>${date}</span>
+    </div>
+    ${tags ? `<div class="article-tags">${tags}</div>` : ''}
+    ${notes}
+    <div class="article-actions">
+      <button class="${readClass}" onclick="toggleRead(${a.id},${!!a.read_at})">${readLabel}</button>
+      <button class="btn-edit" onclick="toggleEdit(${a.id})">✏️ 編輯</button>
+      <button class="btn btn-danger" onclick="deleteArticle(${a.id})">刪除</button>
+    </div>
+    <div class="edit-panel" id="edit-${a.id}"></div>
+  </div>`;
+}
+
+// ── Edit Panel ──
+function toggleEdit(id) {
+  const panel = document.getElementById(`edit-${id}`);
+  const isOpen = panel.classList.contains('open');
+
+  if (!isOpen) {
+    const article = _articles.find(a => a.id === id);
+    const ctx = `e${id}`;
+    // build HTML
+    panel.innerHTML = renderEditPanel(id, article);
+    // init label picker state
+    _pickerState[ctx] = new Set(
+      (article?.tags || '').split(',').map(t => t.trim()).filter(Boolean)
+    );
+    renderLabelOptions(ctx);
+    renderPickerTrigger(ctx);
+    // init stars
+    setEditStar(id, article?.importance || 1);
+    panel.classList.add('open');
+  } else {
+    panel.classList.remove('open');
+  }
+}
+
+function renderEditPanel(id, a) {
+  const ctx = `e${id}`;
+  const noteVal = escHtml(a?.notes || '');
+  const titleVal = escHtml(a?.title || '');
+  return `
+    <div class="form-row">
+      <div class="form-group" style="flex:2">
+        <label>標題</label>
+        <input type="text" id="etitle-${id}" value="${titleVal}">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>標籤</label>
+        <div class="label-picker">
+          <div class="label-trigger" id="labelTrigger-${ctx}" onclick="togglePicker('${ctx}')">
+            <span class="placeholder">選擇標籤…</span>
+          </div>
+          <div class="label-dropdown" id="labelDd-${ctx}">
+            <div id="labelOpts-${ctx}"></div>
+            <div class="label-add-row">
+              <input type="text" id="newLabel-${ctx}" placeholder="新增標籤名稱…"
+                onkeydown="if(event.key==='Enter'){event.preventDefault();createLabel('${ctx}')}"
+                onclick="event.stopPropagation()">
+              <button class="btn btn-outline" style="padding:6px 10px;white-space:nowrap"
+                onclick="createLabel('${ctx}');event.stopPropagation()">+ 新增</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="form-group" style="max-width:160px">
+        <label>重要程度</label>
+        <div class="stars-input" id="estars-${id}">
+          <button class="star-btn" onclick="setEditStar(${id},1)">⭐</button>
+          <button class="star-btn" onclick="setEditStar(${id},2)">⭐</button>
+          <button class="star-btn" onclick="setEditStar(${id},3)">⭐</button>
+        </div>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>備註</label>
+        <textarea id="enotes-${id}">${noteVal}</textarea>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-outline" onclick="toggleEdit(${id})">取消</button>
+      <button class="btn btn-primary" onclick="saveEdit(${id})">儲存</button>
+    </div>`;
+}
+
+async function saveEdit(id) {
+  const title = document.getElementById(`etitle-${id}`).value.trim();
+  const notes = document.getElementById(`enotes-${id}`).value.trim();
+  const ctx = `e${id}`;
+  const tags = [...getSelected(ctx)].join(',');
+  const importance = editStarValues[id] || 1;
+
+  if (!title) return showToast('標題不能為空');
+
+  const res = await fetch(`/api/articles/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title, tags, notes, importance }),
+  });
+
+  if (res.ok) {
+    showToast('已更新');
+    loadArticles();
+  } else {
+    showToast('更新失敗');
+  }
+}
+
+async function toggleRead(id, isRead) {
+  const read_at = isRead ? null : new Date().toISOString();
+  await fetch(`/api/articles/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ read_at }),
+  });
+  loadArticles();
+}
+
+async function deleteArticle(id) {
+  if (!confirm('確定要刪除這篇文章嗎？')) return;
+  const res = await fetch(`/api/articles/${id}`, { method: 'DELETE' });
+  if (res.ok) {
+    showToast('文章已刪除');
+    loadArticles();
+  }
+}
+
+// ── Labels & Filter Chips ──
+async function loadLabels() {
+  const res = await fetch('/api/labels');
+  _labels = await res.json();
+  renderTagChips();
+  renderLabelOptions('add');
+}
+
+function renderTagChips() {
+  const container = document.getElementById('tagChips');
+  if (_labels.length === 0) { container.innerHTML = ''; return; }
+  container.innerHTML = _labels.map(l =>
+    `<span class="tag-chip ${activeTag === l.name ? 'active' : ''}" onclick="filterByTag('${escJs(l.name)}')">${escHtml(l.name)}</span>`
+  ).join('');
+}
+
+function filterByTag(tag) {
+  activeTag = activeTag === tag ? '' : tag;
+  renderTagChips();
+  loadArticles();
+}
+
+// ── Helpers ──
+function hostname(url) {
+  try { return new URL(url).hostname.replace('www.', ''); } catch { return url; }
+}
+
+function escHtml(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// for use inside onclick="..." attributes — escapes single quotes and backslashes
+function escJs(s) {
+  if (!s) return '';
+  return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+}
+
+let toastTimer;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+// ── Init ──
+loadLabels();
+loadArticles();
+</script>
+</body>
+</html>
