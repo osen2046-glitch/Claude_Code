@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>註冊 — 文章收藏</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f5f5f0;
+      --surface: #ffffff;
+      --border: #e2e2dc;
+      --text: #1a1a1a;
+      --text-muted: #6b6b6b;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --danger: #dc2626;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .auth-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 40px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 4px 24px rgba(0,0,0,.08);
+    }
+    h1 { font-size: 1.5rem; font-weight: 700; color: var(--accent); margin-bottom: 6px; text-align: center; }
+    .subtitle { text-align: center; color: var(--text-muted); font-size: .9rem; margin-bottom: 28px; }
+    .form-group { margin-bottom: 16px; }
+    label { display: block; font-size: .82rem; font-weight: 600; margin-bottom: 5px; color: var(--text-muted); }
+    input {
+      border: 1px solid var(--border); border-radius: 8px;
+      padding: 10px 12px; font-size: .95rem; font-family: inherit;
+      color: var(--text); background: var(--surface); width: 100%;
+      transition: border-color .15s; outline: none;
+    }
+    input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,.1); }
+    .btn {
+      width: 100%; padding: 11px; border-radius: 8px; border: none;
+      cursor: pointer; font-size: .95rem; font-weight: 600;
+      font-family: inherit; transition: background .15s;
+      background: var(--accent); color: #fff; margin-top: 8px;
+    }
+    .btn:hover { background: var(--accent-hover); }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .error-msg { color: var(--danger); font-size: .85rem; margin-top: 12px; text-align: center; min-height: 20px; }
+    .link-row { text-align: center; margin-top: 20px; font-size: .88rem; color: var(--text-muted); }
+    .link-row a { color: var(--accent); text-decoration: none; font-weight: 600; }
+    .link-row a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+<div class="auth-card">
+  <h1>📚 文章收藏</h1>
+  <div class="subtitle">建立新帳號</div>
+  <form id="registerForm" onsubmit="handleRegister(event)">
+    <div class="form-group">
+      <label>顯示名稱（選填）</label>
+      <input type="text" id="display_name" placeholder="您的名稱" autocomplete="name">
+    </div>
+    <div class="form-group">
+      <label>電子郵件</label>
+      <input type="email" id="email" placeholder="your@email.com" autocomplete="email" required>
+    </div>
+    <div class="form-group">
+      <label>密碼（至少 6 個字元）</label>
+      <input type="password" id="password" placeholder="設定密碼" autocomplete="new-password" required>
+    </div>
+    <div class="form-group">
+      <label>確認密碼</label>
+      <input type="password" id="confirm_password" placeholder="再次輸入密碼" autocomplete="new-password" required>
+    </div>
+    <div class="error-msg" id="errorMsg"></div>
+    <button class="btn" type="submit" id="submitBtn">建立帳號</button>
+  </form>
+  <div class="link-row">已有帳號？ <a href="/login.html">立即登入</a></div>
+</div>
+
+<script>
+// If already logged in, redirect to home
+fetch('/api/auth/me').then(r => {
+  if (r.ok) window.location.replace('/');
+});
+
+async function handleRegister(e) {
+  e.preventDefault();
+  const display_name = document.getElementById('display_name').value.trim();
+  const email = document.getElementById('email').value;
+  const password = document.getElementById('password').value;
+  const confirm = document.getElementById('confirm_password').value;
+  const errEl = document.getElementById('errorMsg');
+  const btn = document.getElementById('submitBtn');
+
+  if (password !== confirm) {
+    errEl.textContent = '兩次密碼輸入不一致';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = '建立中…';
+  errEl.textContent = '';
+
+  try {
+    const res = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, display_name }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      window.location.replace('/');
+    } else {
+      errEl.textContent = data.error || '註冊失敗';
+    }
+  } catch {
+    errEl.textContent = '網路錯誤，請稍後再試';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '建立帳號';
+  }
+}
+</script>
+</body>
+</html>

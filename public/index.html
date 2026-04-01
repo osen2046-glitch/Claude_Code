@@ -42,6 +42,14 @@
     }
     header h1 { font-size: 1.2rem; font-weight: 700; color: var(--accent); }
     header .count { font-size: .85rem; color: var(--text-muted); margin-left: auto; }
+    .header-user { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .header-user .user-name { font-size: .85rem; color: var(--text-muted); }
+    .btn-sm {
+      padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border);
+      background: transparent; cursor: pointer; font-size: .78rem; font-family: inherit;
+      font-weight: 600; transition: background .15s;
+    }
+    .btn-sm:hover { background: var(--bg); }
 
     .main { max-width: 860px; margin: 0 auto; padding: 24px 16px; }
 
@@ -284,6 +292,11 @@
 <header>
   <h1>📚 文章收藏</h1>
   <span class="count" id="articleCount"></span>
+  <div class="header-user">
+    <span class="user-name" id="headerUserName"></span>
+    <button class="btn-sm" onclick="location.href='/settings.html'">設定</button>
+    <button class="btn-sm" onclick="logout()">登出</button>
+  </div>
 </header>
 
 <div class="main">
@@ -844,9 +857,27 @@ function showToast(msg) {
   toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
 }
 
+// ── Auth ──
+async function checkAuth() {
+  const res = await fetch('/api/auth/me');
+  if (!res.ok) {
+    window.location.replace('/login.html');
+    return;
+  }
+  const user = await res.json();
+  document.getElementById('headerUserName').textContent = user.display_name || user.email;
+}
+
+async function logout() {
+  await fetch('/api/auth/logout', { method: 'POST' });
+  window.location.replace('/login.html');
+}
+
 // ── Init ──
-loadLabels();
-loadArticles();
+checkAuth().then(() => {
+  loadLabels();
+  loadArticles();
+});
 </script>
 </body>
 </html>
