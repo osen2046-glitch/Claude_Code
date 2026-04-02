@@ -1,5 +1,9 @@
 node_modules/
+functions/node_modules/
 data/
 *.db
 .env
 .claude/
+firebase-debug.log
+firebase-debug.*.log
+.firebase/

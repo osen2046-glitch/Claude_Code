@@ -87,20 +87,43 @@
   <div class="link-row">已有帳號？ <a href="/login.html">立即登入</a></div>
 </div>
 
+<!-- Firebase SDK (compat) -->
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script>
+const firebaseConfig = {
+  apiKey: "AIzaSyDEWMEv-0vMixLtjPx2ZPiUzHgtW7cg1ug",
+  authDomain: "oz-workspace.firebaseapp.com",
+  projectId: "oz-workspace",
+  storageBucket: "oz-workspace.firebasestorage.app",
+  messagingSenderId: "128483648899",
+  appId: "1:128483648899:web:56b21e29cd2c677f7002b6"
+};
+firebase.initializeApp(firebaseConfig);
+
 // If already logged in, redirect to home
-fetch('/api/auth/me').then(r => {
-  if (r.ok) window.location.replace('/');
+firebase.auth().onAuthStateChanged(user => {
+  if (user) window.location.replace('/');
 });
+
+function authErrorMsg(code) {
+  const map = {
+    'auth/email-already-in-use': '此電子郵件已被使用',
+    'auth/invalid-email':        '無效的電子郵件格式',
+    'auth/weak-password':        '密碼強度不足（至少 6 個字元）',
+    'auth/too-many-requests':    '嘗試次數過多，請稍後再試',
+  };
+  return map[code] || '註冊失敗，請稍後再試';
+}
 
 async function handleRegister(e) {
   e.preventDefault();
   const display_name = document.getElementById('display_name').value.trim();
-  const email = document.getElementById('email').value;
-  const password = document.getElementById('password').value;
-  const confirm = document.getElementById('confirm_password').value;
-  const errEl = document.getElementById('errorMsg');
-  const btn = document.getElementById('submitBtn');
+  const email        = document.getElementById('email').value.trim();
+  const password     = document.getElementById('password').value;
+  const confirm      = document.getElementById('confirm_password').value;
+  const errEl        = document.getElementById('errorMsg');
+  const btn          = document.getElementById('submitBtn');
 
   if (password !== confirm) {
     errEl.textContent = '兩次密碼輸入不一致';
@@ -112,19 +135,13 @@ async function handleRegister(e) {
   errEl.textContent = '';
 
   try {
-    const res = await fetch('/api/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, display_name }),
-    });
-    const data = await res.json();
-    if (res.ok) {
-      window.location.replace('/');
-    } else {
-      errEl.textContent = data.error || '註冊失敗';
-    }
-  } catch {
-    errEl.textContent = '網路錯誤，請稍後再試';
+    const cred = await firebase.auth().createUserWithEmailAndPassword(email, password);
+    // Store display name in Firebase Auth profile
+    const name = display_name || email.split('@')[0];
+    await cred.user.updateProfile({ displayName: name });
+    window.location.replace('/');
+  } catch (err) {
+    errEl.textContent = authErrorMsg(err.code);
   } finally {
     btn.disabled = false;
     btn.textContent = '建立帳號';

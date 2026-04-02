@@ -41,13 +41,14 @@
       box-shadow: 0 1px 3px rgba(0,0,0,.06);
     }
     header h1 { font-size: 1.2rem; font-weight: 700; color: var(--accent); }
-    header .count { font-size: .85rem; color: var(--text-muted); margin-left: auto; }
-    .header-user { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    header .count { font-size: .85rem; color: var(--text-muted); }
+
+    .header-user { display: flex; align-items: center; gap: 8px; margin-left: auto; flex-shrink: 0; }
     .header-user .user-name { font-size: .85rem; color: var(--text-muted); }
     .btn-sm {
       padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border);
-      background: transparent; cursor: pointer; font-size: .78rem; font-family: inherit;
-      font-weight: 600; transition: background .15s;
+      background: transparent; cursor: pointer; font-size: .82rem;
+      font-family: inherit; font-weight: 600; transition: background .15s;
     }
     .btn-sm:hover { background: var(--bg); }
 
@@ -368,7 +369,7 @@
     </div>
     <div class="form-group">
       <label>重要程度</label>
-      <select id="filterImportance" onchange="loadArticles()">
+      <select id="filterImportance" onchange="renderArticles()">
         <option value="">全部</option>
         <option value="3">⭐⭐⭐ 三星</option>
         <option value="2">⭐⭐ 二星</option>
@@ -377,7 +378,7 @@
     </div>
     <div class="form-group">
       <label>排序</label>
-      <select id="filterSort" onchange="loadArticles()">
+      <select id="filterSort" onchange="renderArticles()">
         <option value="newest">最新加入</option>
         <option value="oldest">最早加入</option>
         <option value="importance">重要程度</option>
@@ -399,15 +400,46 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- Firebase SDK (compat) -->
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script>
+// ── Firebase init ──
+const firebaseConfig = {
+  apiKey: "AIzaSyDEWMEv-0vMixLtjPx2ZPiUzHgtW7cg1ug",
+  authDomain: "oz-workspace.firebaseapp.com",
+  projectId: "oz-workspace",
+  storageBucket: "oz-workspace.firebasestorage.app",
+  messagingSenderId: "128483648899",
+  appId: "1:128483648899:web:56b21e29cd2c677f7002b6"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db   = firebase.firestore();
+
 // ── State ──
-let _labels = [];
-let _articles = [];
+let currentUser = null;
+let _labels     = [];
+let _allArticles = [];   // full list fetched from Firestore
 let _pickerState = { add: new Set() };
 let addStarValue = 1;
-let activeTag = '';
+let activeTag    = '';
 let debounceTimer;
 const editStarValues = {};
+
+// ── Helpers ──
+function articlesRef() {
+  return db.collection(`users/${currentUser.uid}/articles`);
+}
+function labelsRef() {
+  return db.collection(`users/${currentUser.uid}/labels`);
+}
+function toDate(val) {
+  if (!val) return null;
+  if (val.toDate) return val.toDate();
+  return new Date(val);
+}
 
 // ── Stars ──
 function setAddStar(v) {
@@ -437,7 +469,6 @@ function togglePicker(ctx) {
   const dd = document.getElementById(`labelDd-${ctx}`);
   if (!dd) return;
   const opening = !dd.classList.contains('open');
-  // close all dropdowns
   document.querySelectorAll('.label-dropdown.open').forEach(d => {
     d.classList.remove('open');
     const t = document.getElementById('labelTrigger-' + d.id.replace('labelDd-', ''));
@@ -459,13 +490,13 @@ function renderLabelOptions(ctx) {
     return;
   }
   container.innerHTML = _labels.map(l => `
-    <div class="label-option" onclick="toggleLabelCheck('${ctx}',${l.id},'${escJs(l.name)}');event.stopPropagation()">
+    <div class="label-option" onclick="toggleLabelCheck('${ctx}','${l.id}','${escJs(l.name)}');event.stopPropagation()">
       <input type="checkbox" id="lchk-${ctx}-${l.id}"
         ${selected.has(l.name) ? 'checked' : ''}
         onclick="event.stopPropagation()"
-        onchange="toggleLabelCheck('${ctx}',${l.id},'${escJs(l.name)}')">
+        onchange="toggleLabelCheck('${ctx}','${l.id}','${escJs(l.name)}')">
       <span class="opt-name">${escHtml(l.name)}</span>
-      <button class="del-label-btn" onclick="deleteLabel(${l.id},event)" title="刪除標籤">×</button>
+      <button class="del-label-btn" onclick="deleteLabel('${l.id}',event)" title="刪除標籤">×</button>
     </div>
   `).join('');
 }
@@ -485,7 +516,6 @@ function toggleLabelCheck(ctx, labelId, labelName) {
   const selected = getSelected(ctx);
   if (selected.has(labelName)) selected.delete(labelName);
   else selected.add(labelName);
-  // sync checkbox state
   const cb = document.getElementById(`lchk-${ctx}-${labelId}`);
   if (cb) cb.checked = selected.has(labelName);
   renderPickerTrigger(ctx);
@@ -493,25 +523,20 @@ function toggleLabelCheck(ctx, labelId, labelName) {
 
 async function createLabel(ctx) {
   const input = document.getElementById(`newLabel-${ctx}`);
-  const name = input.value.trim();
+  const name  = input.value.trim();
   if (!name) return;
-  const res = await fetch('/api/labels', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name }),
-  });
-  if (res.ok) {
-    const label = await res.json();
+  if (_labels.find(l => l.name === name)) { showToast('標籤名稱已存在'); return; }
+
+  try {
+    const docRef = await labelsRef().add({ name });
     input.value = '';
     await loadLabels();
-    // auto-select the new label in this picker
-    getSelected(ctx).add(label.name);
+    getSelected(ctx).add(name);
     renderPickerTrigger(ctx);
     renderLabelOptions(ctx);
     showToast(`已新增標籤「${name}」`);
-  } else {
-    const err = await res.json();
-    showToast(err.error || '新增失敗');
+  } catch {
+    showToast('新增失敗');
   }
 }
 
@@ -520,17 +545,20 @@ async function deleteLabel(id, e) {
   const label = _labels.find(l => l.id === id);
   if (!label) return;
   if (!confirm(`確定刪除標籤「${label.name}」？\n（不影響已儲存的文章記錄）`)) return;
-  await fetch(`/api/labels/${id}`, { method: 'DELETE' });
-  // remove from all picker states
-  Object.values(_pickerState).forEach(set => set.delete(label.name));
-  await loadLabels();
-  // refresh all open pickers
-  document.querySelectorAll('.label-dropdown.open').forEach(dd => {
-    const ctx = dd.id.replace('labelDd-', '');
-    renderLabelOptions(ctx);
-    renderPickerTrigger(ctx);
-  });
-  showToast(`已刪除標籤「${label.name}」`);
+
+  try {
+    await labelsRef().doc(id).delete();
+    Object.values(_pickerState).forEach(set => set.delete(label.name));
+    await loadLabels();
+    document.querySelectorAll('.label-dropdown.open').forEach(dd => {
+      const ctx = dd.id.replace('labelDd-', '');
+      renderLabelOptions(ctx);
+      renderPickerTrigger(ctx);
+    });
+    showToast(`已刪除標籤「${label.name}」`);
+  } catch {
+    showToast('刪除失敗');
+  }
 }
 
 // close dropdown when clicking outside
@@ -563,7 +591,7 @@ async function autoFetch(url) {
   btn.disabled = true;
   btn.textContent = '抓取中…';
   try {
-    const res = await fetch('/api/fetch-title?url=' + encodeURIComponent(url));
+    const res  = await fetch('/api/fetch-title?url=' + encodeURIComponent(url));
     const data = await res.json();
     if (data.title) {
       document.getElementById('titleInput').value = data.title;
@@ -588,34 +616,30 @@ async function fetchTitle() {
 
 // ── Add Article ──
 async function addArticle() {
-  const url = document.getElementById('urlInput').value.trim();
+  const url   = document.getElementById('urlInput').value.trim();
   const title = document.getElementById('titleInput').value.trim();
-  if (!url) return showToast('請輸入網址');
+  if (!url)   return showToast('請輸入網址');
   if (!title) return showToast('請輸入標題');
 
   const tags = [...getSelected('add')].join(',');
-  const res = await fetch('/api/articles', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
+  try {
+    await articlesRef().add({
       url, title, tags,
       importance: addStarValue,
       notes: document.getElementById('notesInput').value.trim(),
-    }),
-  });
-
-  if (res.ok) {
+      created_at: firebase.firestore.FieldValue.serverTimestamp(),
+      read_at: null,
+    });
     showToast('文章已儲存');
     clearForm();
-    loadArticles();
-  } else {
-    const err = await res.json();
-    showToast(err.error || '儲存失敗');
+    await loadArticles();
+  } catch {
+    showToast('儲存失敗');
   }
 }
 
 function clearForm() {
-  document.getElementById('urlInput').value = '';
+  document.getElementById('urlInput').value   = '';
   document.getElementById('titleInput').value = '';
   document.getElementById('notesInput').value = '';
   _pickerState.add = new Set();
@@ -627,58 +651,89 @@ function clearForm() {
 // ── Filters ──
 function debounceLoad() {
   clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(loadArticles, 300);
+  debounceTimer = setTimeout(renderArticles, 300);
 }
 
 function clearFilters() {
-  document.getElementById('searchInput').value = '';
+  document.getElementById('searchInput').value     = '';
   document.getElementById('filterImportance').value = '';
-  document.getElementById('filterSort').value = 'newest';
+  document.getElementById('filterSort').value       = 'newest';
   activeTag = '';
   renderTagChips();
-  loadArticles();
+  renderArticles();
 }
 
-// ── Load Articles ──
+// ── Load Articles from Firestore ──
 async function loadArticles() {
-  const q = document.getElementById('searchInput').value.trim();
+  const snap = await articlesRef().get();
+  _allArticles = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  renderArticles();
+}
+
+// ── Render Articles (filter + sort in memory) ──
+function renderArticles() {
+  const q          = document.getElementById('searchInput').value.trim().toLowerCase();
   const importance = document.getElementById('filterImportance').value;
-  const sort = document.getElementById('filterSort').value;
+  const sort       = document.getElementById('filterSort').value;
 
-  const params = new URLSearchParams();
-  if (q) params.set('q', q);
-  if (importance) params.set('importance', importance);
-  if (sort) params.set('sort', sort);
-  if (activeTag) params.set('tag', activeTag);
+  let articles = [..._allArticles];
 
-  const res = await fetch('/api/articles?' + params);
-  _articles = await res.json();
+  if (q) {
+    articles = articles.filter(a =>
+      (a.title  || '').toLowerCase().includes(q) ||
+      (a.url    || '').toLowerCase().includes(q) ||
+      (a.notes  || '').toLowerCase().includes(q) ||
+      (a.tags   || '').toLowerCase().includes(q)
+    );
+  }
+  if (importance) {
+    articles = articles.filter(a => a.importance === Number(importance));
+  }
+  if (activeTag) {
+    articles = articles.filter(a =>
+      (a.tags || '').split(',').map(t => t.trim()).includes(activeTag)
+    );
+  }
 
-  document.getElementById('articleCount').textContent = `共 ${_articles.length} 篇`;
+  // Sort
+  const getTime = a => a.created_at?.seconds ?? (toDate(a.created_at)?.getTime() / 1000 ?? 0);
+  if (sort === 'oldest') {
+    articles.sort((a, b) => getTime(a) - getTime(b));
+  } else if (sort === 'importance') {
+    articles.sort((a, b) => b.importance - a.importance || getTime(b) - getTime(a));
+  } else {
+    articles.sort((a, b) => getTime(b) - getTime(a));
+  }
+
+  const filtered = articles;
+  document.getElementById('articleCount').textContent = `共 ${_allArticles.length} 篇`;
   document.getElementById('listLabel').textContent =
-    (q || importance || activeTag) ? `篩選結果（${_articles.length} 篇）` : `所有文章（${_articles.length} 篇）`;
+    (q || importance || activeTag) ? `篩選結果（${filtered.length} 篇）` : `所有文章（${filtered.length} 篇）`;
 
   const list = document.getElementById('articleList');
-  if (_articles.length === 0) {
+  if (filtered.length === 0) {
     list.innerHTML = `<div class="empty-state"><div class="icon">📭</div><div>沒有符合的文章</div></div>`;
     return;
   }
-  list.innerHTML = _articles.map(a => renderCard(a)).join('');
+  list.innerHTML = filtered.map(a => renderCard(a)).join('');
 }
 
 // ── Render Card ──
 function renderCard(a) {
-  const stars = '⭐'.repeat(a.importance) + '<span style="opacity:.2">⭐</span>'.repeat(3 - a.importance);
-  const tags = a.tags ? a.tags.split(',').map(t => t.trim()).filter(Boolean)
+  const stars  = '⭐'.repeat(a.importance) + '<span style="opacity:.2">⭐</span>'.repeat(3 - a.importance);
+  const tags   = a.tags ? a.tags.split(',').map(t => t.trim()).filter(Boolean)
     .map(t => `<span class="article-tag" onclick="filterByTag('${escJs(t)}')">${escHtml(t)}</span>`).join('') : '';
-  const date = new Date(a.created_at).toLocaleDateString('zh-TW', { year:'numeric', month:'2-digit', day:'2-digit' });
-  const isRead = a.read_at ? 'is-read' : '';
-  const readClass = a.read_at ? 'btn-read marked' : 'btn-read';
-  const readLabel = a.read_at ? '✅ 已閱讀' : '標記已讀';
-  const notes = a.notes ? `<div class="article-notes">${escHtml(a.notes)}</div>` : '';
+  const createdAt = toDate(a.created_at);
+  const date   = createdAt
+    ? createdAt.toLocaleDateString('zh-TW', { year:'numeric', month:'2-digit', day:'2-digit' })
+    : '—';
+  const isRead     = !!a.read_at;
+  const readClass  = isRead ? 'btn-read marked' : 'btn-read';
+  const readLabel  = isRead ? '✅ 已閱讀' : '標記已讀';
+  const notes      = a.notes ? `<div class="article-notes">${escHtml(a.notes)}</div>` : '';
 
   return `
-  <div class="article-card ${isRead}" id="card-${a.id}">
+  <div class="article-card ${isRead ? 'is-read' : ''}" id="card-${a.id}">
     <div class="article-top">
       <div class="article-title"><a href="${escHtml(a.url)}" target="_blank" rel="noopener">${escHtml(a.title)}</a></div>
       <div class="article-stars">${stars}</div>
@@ -691,9 +746,9 @@ function renderCard(a) {
     ${tags ? `<div class="article-tags">${tags}</div>` : ''}
     ${notes}
     <div class="article-actions">
-      <button class="${readClass}" onclick="toggleRead(${a.id},${!!a.read_at})">${readLabel}</button>
-      <button class="btn-edit" onclick="toggleEdit(${a.id})">✏️ 編輯</button>
-      <button class="btn btn-danger" onclick="deleteArticle(${a.id})">刪除</button>
+      <button class="${readClass}" onclick="toggleRead('${a.id}',${isRead})">${readLabel}</button>
+      <button class="btn-edit" onclick="toggleEdit('${a.id}')">✏️ 編輯</button>
+      <button class="btn btn-danger" onclick="deleteArticle('${a.id}')">刪除</button>
     </div>
     <div class="edit-panel" id="edit-${a.id}"></div>
   </div>`;
@@ -701,21 +756,18 @@ function renderCard(a) {
 
 // ── Edit Panel ──
 function toggleEdit(id) {
-  const panel = document.getElementById(`edit-${id}`);
+  const panel  = document.getElementById(`edit-${id}`);
   const isOpen = panel.classList.contains('open');
 
   if (!isOpen) {
-    const article = _articles.find(a => a.id === id);
-    const ctx = `e${id}`;
-    // build HTML
+    const article = _allArticles.find(a => a.id === id);
+    const ctx     = `e${id}`;
     panel.innerHTML = renderEditPanel(id, article);
-    // init label picker state
     _pickerState[ctx] = new Set(
       (article?.tags || '').split(',').map(t => t.trim()).filter(Boolean)
     );
     renderLabelOptions(ctx);
     renderPickerTrigger(ctx);
-    // init stars
     setEditStar(id, article?.importance || 1);
     panel.classList.add('open');
   } else {
@@ -724,9 +776,9 @@ function toggleEdit(id) {
 }
 
 function renderEditPanel(id, a) {
-  const ctx = `e${id}`;
-  const noteVal = escHtml(a?.notes || '');
-  const titleVal = escHtml(a?.title || '');
+  const ctx      = `e${id}`;
+  const noteVal  = escHtml(a?.notes  || '');
+  const titleVal = escHtml(a?.title  || '');
   return `
     <div class="form-row">
       <div class="form-group" style="flex:2">
@@ -756,9 +808,9 @@ function renderEditPanel(id, a) {
       <div class="form-group" style="max-width:160px">
         <label>重要程度</label>
         <div class="stars-input" id="estars-${id}">
-          <button class="star-btn" onclick="setEditStar(${id},1)">⭐</button>
-          <button class="star-btn" onclick="setEditStar(${id},2)">⭐</button>
-          <button class="star-btn" onclick="setEditStar(${id},3)">⭐</button>
+          <button class="star-btn" onclick="setEditStar('${id}',1)">⭐</button>
+          <button class="star-btn" onclick="setEditStar('${id}',2)">⭐</button>
+          <button class="star-btn" onclick="setEditStar('${id}',3)">⭐</button>
         </div>
       </div>
     </div>
@@ -769,57 +821,55 @@ function renderEditPanel(id, a) {
       </div>
     </div>
     <div style="display:flex;gap:8px;justify-content:flex-end">
-      <button class="btn btn-outline" onclick="toggleEdit(${id})">取消</button>
-      <button class="btn btn-primary" onclick="saveEdit(${id})">儲存</button>
+      <button class="btn btn-outline" onclick="toggleEdit('${id}')">取消</button>
+      <button class="btn btn-primary" onclick="saveEdit('${id}')">儲存</button>
     </div>`;
 }
 
 async function saveEdit(id) {
-  const title = document.getElementById(`etitle-${id}`).value.trim();
-  const notes = document.getElementById(`enotes-${id}`).value.trim();
-  const ctx = `e${id}`;
-  const tags = [...getSelected(ctx)].join(',');
+  const title      = document.getElementById(`etitle-${id}`).value.trim();
+  const notes      = document.getElementById(`enotes-${id}`).value.trim();
+  const ctx        = `e${id}`;
+  const tags       = [...getSelected(ctx)].join(',');
   const importance = editStarValues[id] || 1;
 
   if (!title) return showToast('標題不能為空');
 
-  const res = await fetch(`/api/articles/${id}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ title, tags, notes, importance }),
-  });
-
-  if (res.ok) {
+  try {
+    await articlesRef().doc(id).update({ title, tags, notes, importance });
     showToast('已更新');
-    loadArticles();
-  } else {
+    await loadArticles();
+  } catch {
     showToast('更新失敗');
   }
 }
 
 async function toggleRead(id, isRead) {
-  const read_at = isRead ? null : new Date().toISOString();
-  await fetch(`/api/articles/${id}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ read_at }),
-  });
-  loadArticles();
+  try {
+    await articlesRef().doc(id).update({
+      read_at: isRead ? null : firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    await loadArticles();
+  } catch {
+    showToast('操作失敗');
+  }
 }
 
 async function deleteArticle(id) {
   if (!confirm('確定要刪除這篇文章嗎？')) return;
-  const res = await fetch(`/api/articles/${id}`, { method: 'DELETE' });
-  if (res.ok) {
+  try {
+    await articlesRef().doc(id).delete();
     showToast('文章已刪除');
-    loadArticles();
+    await loadArticles();
+  } catch {
+    showToast('刪除失敗');
   }
 }
 
 // ── Labels & Filter Chips ──
 async function loadLabels() {
-  const res = await fetch('/api/labels');
-  _labels = await res.json();
+  const snap = await labelsRef().orderBy('name').get();
+  _labels = snap.docs.map(d => ({ id: d.id, ...d.data() }));
   renderTagChips();
   renderLabelOptions('add');
 }
@@ -835,7 +885,7 @@ function renderTagChips() {
 function filterByTag(tag) {
   activeTag = activeTag === tag ? '' : tag;
   renderTagChips();
-  loadArticles();
+  renderArticles();
 }
 
 // ── Helpers ──
@@ -848,7 +898,6 @@ function escHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
-// for use inside onclick="..." attributes — escapes single quotes and backslashes
 function escJs(s) {
   if (!s) return '';
   return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
@@ -863,24 +912,16 @@ function showToast(msg) {
   toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
 }
 
-// ── Auth ──
-async function checkAuth() {
-  const res = await fetch('/api/auth/me');
-  if (!res.ok) {
-    window.location.replace('/login.html');
-    return;
-  }
-  const user = await res.json();
-  document.getElementById('headerUserName').textContent = user.display_name || user.email;
-}
-
+// ── Auth & Init ──
 async function logout() {
-  await fetch('/api/auth/logout', { method: 'POST' });
+  await auth.signOut();
   window.location.replace('/login.html');
 }
 
-// ── Init ──
-checkAuth().then(() => {
+auth.onAuthStateChanged(user => {
+  if (!user) { window.location.replace('/login.html'); return; }
+  currentUser = user;
+  document.getElementById('headerUserName').textContent = user.displayName || user.email;
   loadLabels();
   loadArticles();
 });

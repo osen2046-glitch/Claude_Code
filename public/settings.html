@@ -149,22 +149,34 @@
 
 </div>
 
+<!-- Firebase SDK (compat) -->
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script>
+const firebaseConfig = {
+  apiKey: "AIzaSyDEWMEv-0vMixLtjPx2ZPiUzHgtW7cg1ug",
+  authDomain: "oz-workspace.firebaseapp.com",
+  projectId: "oz-workspace",
+  storageBucket: "oz-workspace.firebasestorage.app",
+  messagingSenderId: "128483648899",
+  appId: "1:128483648899:web:56b21e29cd2c677f7002b6"
+};
+firebase.initializeApp(firebaseConfig);
+
 let currentUser = null;
 
-async function loadUser() {
-  const res = await fetch('/api/auth/me');
-  if (!res.ok) { window.location.replace('/login.html'); return; }
-  currentUser = await res.json();
-  document.getElementById('userEmail').textContent = currentUser.email;
-  document.getElementById('displayName').value = currentUser.display_name || '';
-}
+firebase.auth().onAuthStateChanged(user => {
+  if (!user) { window.location.replace('/login.html'); return; }
+  currentUser = user;
+  document.getElementById('userEmail').textContent = user.email;
+  document.getElementById('displayName').value = user.displayName || '';
+});
 
 async function saveProfile(e) {
   e.preventDefault();
   const display_name = document.getElementById('displayName').value.trim();
   const msgEl = document.getElementById('profileMsg');
-  const btn = document.getElementById('profileBtn');
+  const btn   = document.getElementById('profileBtn');
 
   if (!display_name) { msgEl.className = 'msg error'; msgEl.textContent = '顯示名稱不能為空'; return; }
 
@@ -173,23 +185,12 @@ async function saveProfile(e) {
   msgEl.textContent = '';
 
   try {
-    const res = await fetch('/api/auth/settings', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ display_name }),
-    });
-    const data = await res.json();
-    if (res.ok) {
-      currentUser = data;
-      msgEl.className = 'msg success';
-      msgEl.textContent = '顯示名稱已更新';
-    } else {
-      msgEl.className = 'msg error';
-      msgEl.textContent = data.error || '更新失敗';
-    }
-  } catch {
+    await currentUser.updateProfile({ displayName: display_name });
+    msgEl.className = 'msg success';
+    msgEl.textContent = '顯示名稱已更新';
+  } catch (err) {
     msgEl.className = 'msg error';
-    msgEl.textContent = '網路錯誤，請稍後再試';
+    msgEl.textContent = err.message || '更新失敗';
   } finally {
     btn.disabled = false;
     btn.textContent = '儲存名稱';
@@ -199,10 +200,10 @@ async function saveProfile(e) {
 async function changePassword(e) {
   e.preventDefault();
   const current_password = document.getElementById('currentPassword').value;
-  const new_password = document.getElementById('newPassword').value;
-  const confirm = document.getElementById('confirmPassword').value;
+  const new_password     = document.getElementById('newPassword').value;
+  const confirm          = document.getElementById('confirmPassword').value;
   const msgEl = document.getElementById('passwordMsg');
-  const btn = document.getElementById('passwordBtn');
+  const btn   = document.getElementById('passwordBtn');
 
   if (!current_password || !new_password) {
     msgEl.className = 'msg error'; msgEl.textContent = '請填寫所有欄位'; return;
@@ -210,31 +211,34 @@ async function changePassword(e) {
   if (new_password !== confirm) {
     msgEl.className = 'msg error'; msgEl.textContent = '兩次新密碼輸入不一致'; return;
   }
+  if (new_password.length < 6) {
+    msgEl.className = 'msg error'; msgEl.textContent = '新密碼至少需要 6 個字元'; return;
+  }
 
   btn.disabled = true;
   btn.textContent = '更新中…';
   msgEl.textContent = '';
 
   try {
-    const res = await fetch('/api/auth/settings', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ current_password, new_password }),
-    });
-    const data = await res.json();
-    if (res.ok) {
-      msgEl.className = 'msg success';
-      msgEl.textContent = '密碼已更新';
-      document.getElementById('currentPassword').value = '';
-      document.getElementById('newPassword').value = '';
-      document.getElementById('confirmPassword').value = '';
-    } else {
-      msgEl.className = 'msg error';
-      msgEl.textContent = data.error || '更新失敗';
-    }
-  } catch {
+    // Reauthenticate before changing password
+    const credential = firebase.auth.EmailAuthProvider.credential(currentUser.email, current_password);
+    await currentUser.reauthenticateWithCredential(credential);
+    await currentUser.updatePassword(new_password);
+
+    msgEl.className = 'msg success';
+    msgEl.textContent = '密碼已更新';
+    document.getElementById('currentPassword').value = '';
+    document.getElementById('newPassword').value = '';
+    document.getElementById('confirmPassword').value = '';
+  } catch (err) {
+    const msgMap = {
+      'auth/wrong-password':     '目前密碼錯誤',
+      'auth/invalid-credential': '目前密碼錯誤',
+      'auth/weak-password':      '新密碼強度不足',
+      'auth/too-many-requests':  '嘗試次數過多，請稍後再試',
+    };
     msgEl.className = 'msg error';
-    msgEl.textContent = '網路錯誤，請稍後再試';
+    msgEl.textContent = msgMap[err.code] || err.message || '更新失敗';
   } finally {
     btn.disabled = false;
     btn.textContent = '更新密碼';
@@ -242,11 +246,9 @@ async function changePassword(e) {
 }
 
 async function logout() {
-  await fetch('/api/auth/logout', { method: 'POST' });
+  await firebase.auth().signOut();
   window.location.replace('/login.html');
 }
-
-loadUser();
 </script>
 </body>
 </html>

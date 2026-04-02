@@ -79,37 +79,53 @@
   <div class="link-row">還沒有帳號？ <a href="/register.html">立即註冊</a></div>
 </div>
 
+<!-- Firebase SDK (compat) -->
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script>
+const firebaseConfig = {
+  apiKey: "AIzaSyDEWMEv-0vMixLtjPx2ZPiUzHgtW7cg1ug",
+  authDomain: "oz-workspace.firebaseapp.com",
+  projectId: "oz-workspace",
+  storageBucket: "oz-workspace.firebasestorage.app",
+  messagingSenderId: "128483648899",
+  appId: "1:128483648899:web:56b21e29cd2c677f7002b6"
+};
+firebase.initializeApp(firebaseConfig);
+
 // If already logged in, redirect to home
-fetch('/api/auth/me').then(r => {
-  if (r.ok) window.location.replace('/');
+firebase.auth().onAuthStateChanged(user => {
+  if (user) window.location.replace('/');
 });
+
+function authErrorMsg(code) {
+  const map = {
+    'auth/invalid-email':        '無效的電子郵件格式',
+    'auth/user-not-found':       '電子郵件或密碼錯誤',
+    'auth/wrong-password':       '電子郵件或密碼錯誤',
+    'auth/invalid-credential':   '電子郵件或密碼錯誤',
+    'auth/too-many-requests':    '嘗試次數過多，請稍後再試',
+    'auth/user-disabled':        '此帳號已被停用',
+  };
+  return map[code] || '登入失敗，請稍後再試';
+}
 
 async function handleLogin(e) {
   e.preventDefault();
-  const email = document.getElementById('email').value;
+  const email    = document.getElementById('email').value.trim();
   const password = document.getElementById('password').value;
-  const errEl = document.getElementById('errorMsg');
-  const btn = document.getElementById('submitBtn');
+  const errEl    = document.getElementById('errorMsg');
+  const btn      = document.getElementById('submitBtn');
 
   btn.disabled = true;
   btn.textContent = '登入中…';
   errEl.textContent = '';
 
   try {
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
-    const data = await res.json();
-    if (res.ok) {
-      window.location.replace('/');
-    } else {
-      errEl.textContent = data.error || '登入失敗';
-    }
-  } catch {
-    errEl.textContent = '網路錯誤，請稍後再試';
+    await firebase.auth().signInWithEmailAndPassword(email, password);
+    window.location.replace('/');
+  } catch (err) {
+    errEl.textContent = authErrorMsg(err.code);
   } finally {
     btn.disabled = false;
     btn.textContent = '登入';
