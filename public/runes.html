@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>盧恩符文神諭</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #08091a;
+      --bg2: #0d0f26;
+      --surface: #111328;
+      --border: #2a2d4a;
+      --gold: #c9a84c;
+      --gold-light: #f0d080;
+      --gold-dim: #7a6030;
+      --silver: #a8b4cc;
+      --text: #dde2f0;
+      --text-muted: #7080a0;
+      --glow: rgba(201,168,76,.35);
+      --glow-strong: rgba(201,168,76,.7);
+    }
+
+    @keyframes pulse-glow {
+      0%,100% { box-shadow: 0 0 20px var(--glow), 0 0 60px var(--glow); }
+      50%      { box-shadow: 0 0 40px var(--glow-strong), 0 0 100px var(--glow); }
+    }
+    @keyframes float {
+      0%,100% { transform: translateY(0); }
+      50%      { transform: translateY(-8px); }
+    }
+    @keyframes shimmer {
+      0%   { background-position: -200% center; }
+      100% { background-position:  200% center; }
+    }
+    @keyframes flip-in {
+      0%   { transform: rotateY(90deg) scale(.8); opacity: 0; }
+      60%  { transform: rotateY(-8deg) scale(1.03); opacity: 1; }
+      100% { transform: rotateY(0deg) scale(1); }
+    }
+    @keyframes fade-up {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes star-twinkle {
+      0%,100% { opacity: .2; }
+      50%      { opacity: 1; }
+    }
+    @keyframes rune-spin {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang TC', 'Microsoft JhengHei', serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Starfield ── */
+    .stars {
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    }
+    .star {
+      position: absolute;
+      width: 2px; height: 2px;
+      background: #fff;
+      border-radius: 50%;
+      animation: star-twinkle var(--dur, 3s) ease-in-out infinite;
+      animation-delay: var(--delay, 0s);
+    }
+
+    /* ── Header ── */
+    header {
+      position: sticky; top: 0; z-index: 100;
+      background: linear-gradient(180deg, rgba(8,9,26,.98) 0%, rgba(8,9,26,.9) 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      backdrop-filter: blur(12px);
+    }
+    .back-link {
+      color: var(--gold-dim);
+      text-decoration: none;
+      font-size: .85rem;
+      letter-spacing: .05em;
+      transition: color .2s;
+    }
+    .back-link:hover { color: var(--gold); }
+    header h1 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--gold-light), var(--gold), var(--gold-dim));
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: shimmer 4s linear infinite;
+      letter-spacing: .12em;
+    }
+
+    /* ── Main ── */
+    .main {
+      position: relative; z-index: 1;
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 40px 20px 60px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 32px;
+    }
+
+    /* ── Instruction card ── */
+    .instruction {
+      width: 100%;
+      background: linear-gradient(135deg, rgba(20,22,45,.9), rgba(13,15,38,.9));
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px 28px;
+      text-align: center;
+    }
+    .instruction p {
+      font-size: 1rem;
+      line-height: 1.8;
+      color: var(--silver);
+      letter-spacing: .06em;
+    }
+    .instruction .rune-deco {
+      display: block;
+      font-size: 1.5rem;
+      color: var(--gold-dim);
+      margin-bottom: 8px;
+      letter-spacing: .3em;
+    }
+
+    /* ── Oracle button ── */
+    .oracle-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+    .oracle-btn {
+      width: 140px; height: 140px;
+      border-radius: 50%;
+      border: 2px solid var(--gold);
+      background: radial-gradient(circle at 40% 35%, #1c1f40, #08091a);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3.8rem;
+      color: var(--gold);
+      transition: transform .2s, border-color .3s;
+      animation: pulse-glow 3s ease-in-out infinite, float 4s ease-in-out infinite;
+      position: relative;
+      outline: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .oracle-btn::before {
+      content: '';
+      position: absolute; inset: -8px;
+      border-radius: 50%;
+      border: 1px solid rgba(201,168,76,.2);
+    }
+    .oracle-btn::after {
+      content: '';
+      position: absolute; inset: -16px;
+      border-radius: 50%;
+      border: 1px solid rgba(201,168,76,.08);
+    }
+    .oracle-btn:hover {
+      transform: scale(1.07);
+      border-color: var(--gold-light);
+      box-shadow: 0 0 60px var(--glow-strong), 0 0 120px var(--glow);
+    }
+    .oracle-btn:active { transform: scale(.97); }
+    .oracle-btn.spinning .oracle-rune {
+      animation: rune-spin .6s linear;
+    }
+    .oracle-hint {
+      font-size: .82rem;
+      color: var(--text-muted);
+      letter-spacing: .08em;
+    }
+
+    /* ── Card area ── */
+    .card-area {
+      width: 100%;
+      perspective: 1200px;
+      min-height: 10px;
+    }
+
+    .rune-card {
+      width: 100%;
+      background: linear-gradient(160deg, #151830 0%, #0d0f26 60%, #0a0c1e 100%);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 36px 32px 40px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      animation: flip-in .7s cubic-bezier(.34,1.56,.64,1) forwards;
+    }
+    .rune-card::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 50% 0%, rgba(201,168,76,.08) 0%, transparent 65%);
+      pointer-events: none;
+    }
+
+    /* corner ornaments */
+    .rune-card::after {
+      content: '᚛᚜';
+      position: absolute;
+      bottom: 14px; right: 18px;
+      font-size: 1.1rem;
+      color: var(--gold-dim);
+      opacity: .4;
+      letter-spacing: .2em;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 28px;
+    }
+    .rune-number {
+      font-size: .75rem;
+      color: var(--text-muted);
+      letter-spacing: .1em;
+    }
+    .orientation-badge {
+      font-size: .75rem;
+      padding: 3px 10px;
+      border-radius: 999px;
+      letter-spacing: .06em;
+      font-weight: 600;
+    }
+    .upright   { background: rgba(201,168,76,.15); color: var(--gold); border: 1px solid rgba(201,168,76,.3); }
+    .reversed  { background: rgba(120,80,180,.18); color: #c090f0; border: 1px solid rgba(160,100,220,.35); }
+
+    .rune-symbol {
+      font-size: 7rem;
+      line-height: 1;
+      color: var(--gold-light);
+      text-shadow: 0 0 30px var(--glow-strong), 0 0 60px var(--glow);
+      margin: 0 auto 16px;
+      display: block;
+      animation: fade-up .5s .2s both;
+    }
+    .rune-symbol.rev { display: inline-block; transform: rotate(180deg); }
+
+    .rune-name {
+      font-size: 1.45rem;
+      font-weight: 700;
+      color: var(--gold);
+      letter-spacing: .15em;
+      margin-bottom: 4px;
+      animation: fade-up .5s .3s both;
+    }
+    .rune-name-zh {
+      font-size: .95rem;
+      color: var(--silver);
+      letter-spacing: .2em;
+      margin-bottom: 28px;
+      animation: fade-up .5s .35s both;
+    }
+
+    .divider {
+      width: 60%; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
+      margin: 0 auto 28px;
+    }
+
+    .reading-section {
+      text-align: left;
+      animation: fade-up .5s .45s both;
+    }
+    .reading-block {
+      margin-bottom: 20px;
+    }
+    .reading-block h4 {
+      font-size: .78rem;
+      font-weight: 700;
+      color: var(--gold-dim);
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .reading-block h4::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, var(--border), transparent);
+    }
+    .reading-block p {
+      font-size: .95rem;
+      line-height: 1.85;
+      color: var(--text);
+      letter-spacing: .04em;
+    }
+    .reading-block.action p {
+      color: var(--gold-light);
+    }
+
+    /* ── Again button ── */
+    .again-btn {
+      display: block;
+      margin: 4px auto 0;
+      padding: 12px 40px;
+      border-radius: 999px;
+      border: 1px solid var(--gold);
+      background: transparent;
+      color: var(--gold);
+      font-size: .9rem;
+      font-weight: 600;
+      letter-spacing: .12em;
+      cursor: pointer;
+      transition: background .2s, color .2s, box-shadow .2s;
+      font-family: inherit;
+      animation: fade-up .5s .6s both;
+    }
+    .again-btn:hover {
+      background: rgba(201,168,76,.12);
+      box-shadow: 0 0 20px var(--glow);
+    }
+    .again-btn:active { transform: scale(.97); }
+
+    /* ── Responsive ── */
+    @media (max-width: 480px) {
+      .rune-symbol { font-size: 5.5rem; }
+      .rune-card { padding: 28px 20px 32px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Starfield -->
+<div class="stars" id="stars"></div>
+
+<header>
+  <a class="back-link" href="/">← 文章收藏</a>
+  <h1>ᚱ 盧恩符文神諭</h1>
+</header>
+
+<div class="main">
+
+  <!-- Instruction -->
+  <div class="instruction">
+    <span class="rune-deco">ᚠ ᚢ ᚦ ᚨ ᚱ ᚲ</span>
+    <p>先靜心祈禱，在心中默念你的問題<br>準備好後，點擊符文召喚神諭</p>
+  </div>
+
+  <!-- Oracle button -->
+  <div class="oracle-wrap">
+    <button class="oracle-btn" id="oracleBtn" aria-label="召喚符文神諭">
+      <span class="oracle-rune" id="oracleRune">ᚷ</span>
+    </button>
+    <span class="oracle-hint">點擊符文 · 召喚神諭</span>
+  </div>
+
+  <!-- Card area -->
+  <div class="card-area" id="cardArea"></div>
+
+</div>
+
+<script>
+const RUNES = [
+  {
+    symbol: 'ᚠ', name: 'Fehu', zh: '費胡・財富',
+    num: 1,
+    core: '費胡是北歐盧恩字母的第一個符文，象徵流動的財富、牲畜與繁榮。它代表原始的生命力量，以及透過努力所換來的豐盛成果。',
+    insight: '你所追求的事物，並非遙不可及。費胡告訴你：豐盛的契機已悄然靠近，關鍵在於你是否準備好敞開雙手去接納。',
+    action: '積極管理你的資源——無論是金錢、時間還是精力。分享你所擁有的，流動的能量才能帶來更大的回報。',
+    core_rev: '費胡逆位警示你可能面臨資源流失、財務混亂或對物質的過度執著。貪婪與揮霍都將阻礙真正的繁榮。',
+    insight_rev: '此刻可能存在財務上的隱憂，或是對某件事的佔有欲正在消耗你的能量。',
+    action_rev: '重新審視你的消費與投資模式，停止不必要的損耗，先穩定根基再向外擴展。'
+  },
+  {
+    symbol: 'ᚢ', name: 'Uruz', zh: '烏魯茲・原力',
+    num: 2,
+    core: '烏魯茲象徵原始的野牛之力，代表蠻荒的力量、健康與生命力。它是一股無拘無束、強悍而充滿活力的能量。',
+    insight: '你內在有一股強大的力量尚未完全釋放。此刻宇宙鼓勵你信任自己的直覺與體能，勇敢面對挑戰。',
+    action: '鍛鍊身體，照顧健康，讓自己保持在最佳狀態。勇氣與耐力是現在最需要的資糧。',
+    core_rev: '逆位的烏魯茲暗示力量的誤用、魯莽或優柔寡斷。你可能正在浪費寶貴的生命力量。',
+    insight_rev: '你的某些衝動或行動可能過於強硬，或反之過於被動，缺乏決心去面對眼前的局面。',
+    action_rev: '找回平衡——既不要莽撞行事，也不要退縮逃避。適當休息，讓力量重新積聚。'
+  },
+  {
+    symbol: 'ᚦ', name: 'Thurisaz', zh: '瑟里薩茲・荊棘',
+    num: 3,
+    core: '瑟里薩茲是雷神索爾之鎚，象徵守護、衝突與考驗。它是一道尖銳的荊棘，也是保護自我的武器。',
+    insight: '你正面臨或即將面臨一場考驗。這不是懲罰，而是宇宙為你量身打造的淬鍊，通過之後你將更為強大。',
+    action: '不要逃避衝突，以清醒的頭腦分析障礙，然後果斷出擊。你的邊界需要被清楚建立與守護。',
+    core_rev: '逆位的瑟里薩茲警告你可能因衝動而傷人傷己，或陷入無謂的爭鬥之中。',
+    insight_rev: '此刻可能有一股破壞性的能量正在影響你的決策，讓你做出後悔的選擇。',
+    action_rev: '先暫停行動，深呼吸，不要在憤怒或衝動下做重大決定。靜待風平浪靜再行動。'
+  },
+  {
+    symbol: 'ᚨ', name: 'Ansuz', zh: '安蘇茲・神諭',
+    num: 4,
+    core: '安蘇茲是奧丁的符文，代表神聖的訊息、語言與智慧。它象徵靈感的降臨與溝通的力量。',
+    insight: '宇宙正透過各種徵兆與你說話。留意夢境、巧合與突如其來的靈感——那都是給你的訊息。',
+    action: '傾聽，而非只是說話。在溝通中尋求真理，允許智慧透過你流動，無論是文字、演說或創作。',
+    core_rev: '逆位的安蘇茲暗示溝通的阻礙、謊言或誤解。你或周圍的人可能沒有說出真相。',
+    insight_rev: '你可能錯過了重要的訊號，或有人正在對你隱瞞什麼重要的事情。',
+    action_rev: '停止輕信他人的話語，用自己的直覺去分辨真偽。同時，反思自己的表達是否誠實清晰。'
+  },
+  {
+    symbol: 'ᚱ', name: 'Raidho', zh: '萊多・旅程',
+    num: 5,
+    core: '萊多是旅途與節奏的符文，代表前進中的動力、正確的方向與宇宙的秩序。每一段旅程都有其意義。',
+    insight: '你的人生正處於一個移動與變化的階段。無論是外在的旅行還是內在的心靈旅程，都是你成長的道路。',
+    action: '信任旅途的過程。制定計劃，但也保持靈活。每一步都有其意義，即便暫時看不清終點。',
+    core_rev: '逆位的萊多暗示旅途受阻、計劃延誤或方向迷失。你可能偏離了自己真正的道路。',
+    insight_rev: '你目前的方向可能需要調整，某件事的進展比預期中更加緩慢或困難。',
+    action_rev: '重新評估你的計劃與目標。有時候倒退一步，才能找到更好的前進路徑。'
+  },
+  {
+    symbol: 'ᚲ', name: 'Kenaz', zh: '肯那茲・火炬',
+    num: 6,
+    core: '肯那茲是火炬與啟示的符文，象徵知識、創造力與照亮黑暗的光芒。它是工匠的火焰，也是洞見的閃現。',
+    insight: '你內在的創造之火正等待被點燃。此刻是啟動新計劃、學習新技能或分享知識的絕佳時機。',
+    action: '讓你的創造力自由流動。學習、創作、教導他人——將你的知識化為照亮世界的火炬。',
+    core_rev: '逆位的肯那茲象徵靈感熄滅、創意受阻或知識的誤用。你可能正陷入黑暗與困惑之中。',
+    insight_rev: '你的創造力或熱情可能暫時耗盡，或是某個計劃的進展讓你感到迷茫。',
+    action_rev: '找回你的熱情之源。休息與重新充電是必要的，不要強迫自己在靈感枯竭時硬撐。'
+  },
+  {
+    symbol: 'ᚷ', name: 'Gebo', zh: '蓋波・贈禮',
+    num: 7,
+    core: '蓋波是禮物與交換的符文，象徵慷慨、夥伴關係與平衡的給予和接受。真正的關係是雙向流動的。',
+    insight: '一份珍貴的禮物正在向你靠近，它可能是一段關係、一個機會或一次命中注定的相遇。',
+    action: '學習優雅地給予，也學習優雅地接受。在關係中尋求平衡，不要只付出或只索取。',
+    core_rev: '蓋波沒有逆位（因其對稱性），無論如何抽到都是正位的啟示。',
+    insight_rev: '蓋波的能量提醒你，即便在最困難的關係中，也存在禮物的交換——那是成長的機會。',
+    action_rev: '審視你的關係中是否存在不平衡的給予與索取，並勇敢地重新建立健康的邊界。'
+  },
+  {
+    symbol: 'ᚹ', name: 'Wunjo', zh: '溫約・喜悅',
+    num: 8,
+    core: '溫約是喜悅與幸福的符文，象徵和諧、滿足與心靈的平靜。當各元素找到平衡，喜悅自然湧現。',
+    insight: '喜悅並不遙遠。你所追求的和諧與幸福，已在你的掌握之中，只需放下對完美的執著。',
+    action: '感恩此刻所擁有的。分享你的喜悅，讓正向的能量吸引更多美好的事物進入你的生命。',
+    core_rev: '逆位的溫約暗示幸福被遮蔽、情緒低落或表面和諧下隱藏的衝突。',
+    insight_rev: '你可能正壓抑著某些情緒，或是生活中某個看似美好的表象下藏著不安。',
+    action_rev: '誠實面對自己的感受，不要假裝快樂。真正的喜悅源於真實，而非掩飾。'
+  },
+  {
+    symbol: 'ᚺ', name: 'Hagalaz', zh: '哈加拉茲・冰雹',
+    num: 9,
+    core: '哈加拉茲是冰雹與破壞性自然力量的符文。它代表突然的干擾、不可控的變化，以及打破舊有格局的能量。',
+    insight: '某些無法預期的改變正在降臨，或已在醞釀之中。這場「冰雹」將摧毀不再適合你的事物，為新生創造空間。',
+    action: '放下對掌控的執念，學習在混亂中保持內心的平靜。破壞之後必有重建，信任這個過程。',
+    core_rev: '哈加拉茲沒有傳統逆位，其能量不論方向都帶來轉化的考驗。',
+    insight_rev: '即便此刻的混亂令你不安，記住：冰雹融化後，大地將得到滋潤，萬物重新生長。',
+    action_rev: '找到你內心的錨點，在外在風暴中維持一份平靜與清醒。這是你最重要的功課。'
+  },
+  {
+    symbol: 'ᚾ', name: 'Nauthiz', zh: '諾蒂茲・需求',
+    num: 10,
+    core: '諾蒂茲是需求與必要性的符文，象徵在匱乏中磨練出的智慧與耐力。它是命運之火，在最深的黑暗中燃燒。',
+    insight: '此刻的困境是一個深刻的靈魂課題。你正在學習辨別真正的需求與不必要的欲望之間的差異。',
+    action: '接受限制的存在，在有限的條件下發揮創意。耐心等待，同時做好準備，機會來臨時你將不再錯過。',
+    core_rev: '逆位的諾蒂茲放大了對匱乏的恐懼，可能導致強迫性的行為或對欲望的無謂沉溺。',
+    insight_rev: '你可能被恐懼所驅動，做出並非出於真實需求的選擇。停下來，問問自己真正需要的是什麼。',
+    action_rev: '放下恐懼心態，從豐盛的角度出發來審視你的處境。你擁有的，遠比你以為的要多。'
+  },
+  {
+    symbol: 'ᛁ', name: 'Isa', zh: '伊薩・冰',
+    num: 11,
+    core: '伊薩是冰與靜止的符文，象徵暫停、凍結與等待。它是一段必要的沉寂，讓一切重新歸於清明。',
+    insight: '現在不是推進的時機，而是靜止與等待的時機。就像冰封的河流，表面之下仍有流動，但須等待春天。',
+    action: '停下來，反思，冥想。讓自己進入靜止的狀態，讓混亂沉澱，讓清晰自然浮現。',
+    core_rev: '伊薩沒有逆位，其靜止的能量在任何方向都一致。',
+    insight_rev: '即便此刻感到停滯，這份靜止本身就是一種訊息——有些事情尚未準備好，強行推進只會帶來阻礙。',
+    action_rev: '接受此刻的靜止狀態，而非對抗它。在等待中找到內心的平靜，那是最深刻的智慧。'
+  },
+  {
+    symbol: 'ᛃ', name: 'Jera', zh: '耶拉・豐收',
+    num: 12,
+    core: '耶拉是一年四季循環與豐收的符文，象徵努力後的成果、自然的節律與因果的圓滿。',
+    insight: '你之前所播下的種子，正在以最合適的速度成長。宇宙的時機是完美的，豐收將在適當的季節來臨。',
+    action: '繼續耕耘，保持耐心。不要因為看不到立即的結果而放棄——每個季節都有其任務。',
+    core_rev: '耶拉沒有逆位，循環的自然法則不受方向影響。',
+    insight_rev: '此刻的等待是必要的，就如同農夫不能強迫種子在冬天發芽。信任自然的時機。',
+    action_rev: '如果感到挫折，重新審視你所付出的努力是否與你所期望的收穫相符，並調整你的期待。'
+  },
+  {
+    symbol: 'ᛇ', name: 'Eihwaz', zh: '埃伊哈茲・紫杉',
+    num: 13,
+    core: '埃伊哈茲是世界之樹（紫杉）的符文，象徵生死的連結、耐力與深刻的轉化。它是通往內在力量的通道。',
+    insight: '你正站在一個重要的轉化時刻。就像紫杉樹同時象徵死亡與重生，此刻的結束預示著更偉大的開始。',
+    action: '面對你內心最深的恐懼，那裡隱藏著你最大的力量。接受轉化的過程，不要半途而廢。',
+    core_rev: '逆位的埃伊哈茲暗示對改變的抗拒或混亂感，可能陷入徬徨與迷失的狀態。',
+    insight_rev: '你對某個必要的改變感到抗拒，但拖延只會增加痛苦。面對它，才能穿越它。',
+    action_rev: '找一位信任的人傾訴你的困惑，或透過冥想尋找自己內心真正的答案。'
+  },
+  {
+    symbol: 'ᛈ', name: 'Perthro', zh: '佩爾索・命運',
+    num: 14,
+    core: '佩爾索是命運、神秘與隱藏知識的符文，象徵不可知的命運之輪，以及靈魂深處的祕密。',
+    insight: '某些超越你掌控的神秘力量正在作用。此刻是深入探索自我、揭示隱藏真相的好時機。',
+    action: '信任你的直覺，探索你的內在世界。日記、占卜或冥想都能幫助你連接更深層的智慧。',
+    core_rev: '逆位的佩爾索暗示對命運的不安、過去的祕密浮現，或是對未知的過度恐懼。',
+    insight_rev: '某些被你壓抑的事物正在浮現，迴避只會讓它變得更大。是時候直視那道陰影了。',
+    action_rev: '勇敢面對你一直逃避的真相，無論是關於你自己還是某段關係。誠實是療癒的開始。'
+  },
+  {
+    symbol: 'ᛉ', name: 'Algiz', zh: '阿爾吉茲・保護',
+    num: 15,
+    core: '阿爾吉茲是麋鹿角與天鵝的符文，象徵神聖的守護、本能的防禦與靈性的連結。它是宇宙的庇護。',
+    insight: '你受到神靈或宇宙力量的庇護。信任你的直覺，它正在保護你遠離傷害，引導你走向安全的道路。',
+    action: '建立並維護你的精神防護，無論是透過冥想、祈禱或與大自然的連結。信任你的本能警覺。',
+    core_rev: '逆位的阿爾吉茲暗示防禦的弱化，你可能在不適當的時機放下了守護，或是被虛假的安全感迷惑。',
+    insight_rev: '你的某個邊界可能正在被侵蝕，或是你過度防禦而封閉了自己。找到適度的平衡。',
+    action_rev: '審視你目前的關係與環境，辨別哪些是真正安全的，哪些只是虛假的舒適。'
+  },
+  {
+    symbol: 'ᛊ', name: 'Sowilo', zh: '索威羅・太陽',
+    num: 16,
+    core: '索威羅是太陽與勝利的符文，象徵光明、成功、意志力與靈魂的光輝。它是驅散黑暗的永恆之光。',
+    insight: '你的道路是光明的。此刻宇宙賜予你強大的能量與清晰的方向，勝利與成功唾手可得。',
+    action: '充滿信心地前進，讓你的光芒照耀他人。此刻是採取行動、展示你才能的最佳時機。',
+    core_rev: '索威羅沒有逆位，太陽的光芒不因方向而改變其本質。',
+    insight_rev: '即便此刻感到疲憊或迷惘，記住你內在有一道永不熄滅的光。找到它，讓它引路。',
+    action_rev: '如果你感到力量低落，尋找能為你補充能量的事物——自然光、積極的人際關係、或你最熱愛的活動。'
+  },
+  {
+    symbol: 'ᛏ', name: 'Tiwaz', zh: '提瓦茲・正義',
+    num: 17,
+    core: '提瓦茲是戰神提爾的符文，象徵正義、榮耀、犧牲與不屈的意志。他為了更大的善而甘願犧牲。',
+    insight: '你正面臨一個需要勇氣與正直的考驗。做正確的事，即便那意味著必要的犧牲，最終的勝利是你的。',
+    action: '為你相信的事物挺身而出。以正義與誠信行事，不要因為恐懼或私利而妥協你的原則。',
+    core_rev: '逆位的提瓦茲暗示不公義、失去方向或背叛了自己的原則。你可能在以犧牲自我換取不值得的事物。',
+    insight_rev: '你是否在某件事情上妥協了自己的誠信？或是感受到來自外部的不公平對待？',
+    action_rev: '重新找回你的道德羅盤，不要為了短期的利益而出賣長期的原則。公平對待自己，也公平對待他人。'
+  },
+  {
+    symbol: 'ᛒ', name: 'Berkano', zh: '貝爾卡諾・樺樹',
+    num: 18,
+    core: '貝爾卡諾是樺樹女神的符文，象徵新生、孕育、療癒與母性的滋養。它是春天回歸時最先發芽的樹。',
+    insight: '新的開始正在萌芽。無論是新的關係、新的計劃還是內在的療癒，滋養的能量正向你湧來。',
+    action: '照顧好自己的身心，也滋養你的創造計劃。就像照料幼苗一樣，給予耐心與溫柔的關注。',
+    core_rev: '逆位的貝爾卡諾暗示成長受阻、家庭問題或照顧者的疲憊。也許是對新事物的恐懼阻礙了開始。',
+    insight_rev: '你是否感到照顧他人已超出了自己的承受能力？還是某個新計劃因為恐懼而遲遲未能展開？',
+    action_rev: '先照顧好自己，才能有能力照顧他人。設定界限，讓自己得到充分的休息與滋養。'
+  },
+  {
+    symbol: 'ᛖ', name: 'Ehwaz', zh: '埃哈茲・駿馬',
+    num: 19,
+    core: '埃哈茲是馬與騎手的符文，象徵忠誠的夥伴關係、和諧的移動與信任的連結。好馬識好主，主賞識馬。',
+    insight: '你的進展取決於你與他人（或你的內在資源）之間的和諧。信任你的夥伴，協力前進。',
+    action: '建立基於信任的關係，無論是工作夥伴、人生伴侶還是你與自己身體的關係。協作是成功的關鍵。',
+    core_rev: '逆位的埃哈茲暗示夥伴關係的不和諧、背叛或溝通的失靈。信任出現了裂縫。',
+    insight_rev: '你與某個重要的人或計劃之間可能存在摩擦，方向上的不一致正在消耗你的能量。',
+    action_rev: '直接溝通，解決存在的分歧。不要讓小摩擦累積成無法修復的裂痕。'
+  },
+  {
+    symbol: 'ᛗ', name: 'Mannaz', zh: '曼納茲・人類',
+    num: 20,
+    core: '曼納茲是人類本質的符文，象徵自我意識、理性智慧與人類的相互依存。我們在連結中找到意義。',
+    insight: '此刻的課題關乎你如何看待自己，以及如何在人際關係中體現你的本質。自知者智。',
+    action: '深刻地認識自己，包括你的優點與陰影。與他人真誠連結，在社群中找到你的位置與貢獻。',
+    core_rev: '逆位的曼納茲暗示自我欺騙、孤立或對人性的誤解。你可能與自己的真實本質脫節。',
+    insight_rev: '你是否對自己過於嚴苛，或是在關係中失去了自我？重新找到你存在的核心意義。',
+    action_rev: '停止與他人比較，回歸自身。尋求可信任的人的支持，打破孤立的困境。'
+  },
+  {
+    symbol: 'ᛚ', name: 'Laguz', zh: '拉古茲・水流',
+    num: 21,
+    core: '拉古茲是水的符文，象徵直覺、潛意識的流動、情感的深度與生命力量的循環。水善利萬物而不爭。',
+    insight: '你的直覺此刻非常強烈。深入你的情感世界，讓潛意識的智慧浮現，引導你做出正確的選擇。',
+    action: '信任你的直覺感受，不要過度用頭腦分析。讓情感自然流動，如水一般找到它自己的路徑。',
+    core_rev: '逆位的拉古茲暗示情感的壓抑或氾濫、直覺的混淆，或被強烈的情緒所淹沒。',
+    insight_rev: '你可能正在壓抑強烈的情緒，或是被洶湧的感受所吞噬，失去了清晰的方向感。',
+    action_rev: '找到一種安全表達情緒的方式——日記、藝術創作或與信任的人傾訴。不要讓情感在內心發霉。'
+  },
+  {
+    symbol: 'ᛜ', name: 'Ingwaz', zh: '英瓦茲・豐饒神',
+    num: 22,
+    core: '英瓦茲是豐饒之神英格的符文，象徵內在的孕育、完成的週期與充滿希望的潛力。種子在黑暗中等待。',
+    insight: '你內在正在孕育一個重要的計劃或轉變。此刻需要的是耐心與保護，不要過早將它暴露在外。',
+    action: '給你的夢想和計劃一個安全孕育的空間。當時機成熟，它將以最美麗的形式誕生。',
+    core_rev: '英瓦茲沒有逆位，其完成的圓形能量不受方向影響。',
+    insight_rev: '即便感到停滯，要知道地下的根系正在深深紮根。你看不到的進展，正在悄悄發生。',
+    action_rev: '繼續為你的計劃投入愛與注意力，即便外表上暫時看不到成果。堅持的種子終將發芽。'
+  },
+  {
+    symbol: 'ᛞ', name: 'Dagaz', zh: '達嘎茲・黎明',
+    num: 23,
+    core: '達嘎茲是黎明與轉化時刻的符文，象徵突破、頓悟與晝夜交替之間的神聖時刻。黑暗即將散去。',
+    insight: '你正站在一個重大突破的邊緣。就如同黎明前的最深黑暗，轉機即將到來，充滿希望與新生的能量。',
+    action: '保持開放與期待，為即將到來的轉化做好準備。此刻是舊與新交替的神聖時刻，敞開心胸迎接它。',
+    core_rev: '達嘎茲沒有逆位，黎明的光芒不受方向影響，它代表轉化本身就是禮物。',
+    insight_rev: '即便此刻仍在黑暗中，記住：每一個黎明都必然到來。你的轉化時刻，正在醞釀之中。',
+    action_rev: '在等待光明的過程中，專注於內在的積累與準備，讓自己配得上即將到來的突破。'
+  },
+  {
+    symbol: 'ᛟ', name: 'Othala', zh: '奧薩拉・傳承',
+    num: 24,
+    core: '奧薩拉是祖先遺產與神聖土地的符文，象徵家族傳承、根基、精神遺產與屬於自己的家園。',
+    insight: '你的根基與來處給予你力量。此刻可以從家族智慧或文化傳統中汲取養分，找到屬於自己的立足之地。',
+    action: '珍視你的根源與傳承，同時也創造屬於自己的遺產。了解你從哪裡來，才能清楚地走向哪裡去。',
+    core_rev: '逆位的奧薩拉暗示與根源的斷裂、家庭的衝突或對過去的執著阻礙了前進。',
+    insight_rev: '你是否感到與家人、故鄉或自己的文化認同有所疏離？還是家族的包袱讓你喘不過氣？',
+    action_rev: '尋找方法與自己的根源和解，同時清晰地劃出健康的界限，讓過去成為力量而非負擔。'
+  }
+];
+
+function generateStars() {
+  const container = document.getElementById('stars');
+  for (let i = 0; i < 120; i++) {
+    const s = document.createElement('div');
+    s.className = 'star';
+    s.style.cssText = `
+      left: ${Math.random() * 100}%;
+      top: ${Math.random() * 100}%;
+      --dur: ${2 + Math.random() * 4}s;
+      --delay: ${Math.random() * 5}s;
+      width: ${Math.random() < .2 ? 3 : 2}px;
+      height: ${Math.random() < .2 ? 3 : 2}px;
+      opacity: ${.1 + Math.random() * .4};
+    `;
+    container.appendChild(s);
+  }
+}
+
+function drawCard() {
+  const btn = document.getElementById('oracleBtn');
+  const runeEl = document.getElementById('oracleRune');
+  const area = document.getElementById('cardArea');
+
+  // Brief spin animation on button rune
+  btn.classList.add('spinning');
+  setTimeout(() => btn.classList.remove('spinning'), 700);
+
+  const rune = RUNES[Math.floor(Math.random() * RUNES.length)];
+  const reversed = Math.random() < .45; // slight preference for upright
+  const oriented = reversed && rune.name !== 'Gebo' && rune.name !== 'Hagalaz'
+                   && rune.name !== 'Isa' && rune.name !== 'Jera'
+                   && rune.name !== 'Sowilo' && rune.name !== 'Eihwaz'
+                   && rune.name !== 'Ingwaz' && rune.name !== 'Dagaz';
+
+  const label  = oriented ? '逆位' : '正位';
+  const badge  = oriented ? 'reversed' : 'upright';
+  const core   = oriented ? rune.core_rev   : rune.core;
+  const insight= oriented ? rune.insight_rev: rune.insight;
+  const action = oriented ? rune.action_rev : rune.action;
+
+  area.innerHTML = `
+    <div class="rune-card">
+      <div class="card-header">
+        <span class="rune-number">ᚠᚢᚦᚨᚱᚲ · ${String(rune.num).padStart(2,'0')}</span>
+        <span class="orientation-badge ${badge}">${label}</span>
+      </div>
+
+      <span class="rune-symbol${oriented ? ' rev' : ''}">${rune.symbol}</span>
+      <div class="rune-name">${rune.name}</div>
+      <div class="rune-name-zh">${rune.zh}</div>
+
+      <div class="divider"></div>
+
+      <div class="reading-section">
+        <div class="reading-block">
+          <h4>核心意涵</h4>
+          <p>${core}</p>
+        </div>
+        <div class="reading-block">
+          <h4>對你問題的啟示</h4>
+          <p>${insight}</p>
+        </div>
+        <div class="reading-block action">
+          <h4>行動建議</h4>
+          <p>${action}</p>
+        </div>
+      </div>
+
+      <button class="again-btn" id="againBtn">↻ 再次占卜</button>
+    </div>
+  `;
+
+  document.getElementById('againBtn').addEventListener('click', drawCard);
+
+  // Smooth scroll to card
+  setTimeout(() => area.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
+}
+
+generateStars();
+document.getElementById('oracleBtn').addEventListener('click', drawCard);
+</script>
+</body>
+</html>
