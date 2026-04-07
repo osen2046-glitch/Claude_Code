@@ -1,9 +1,39 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Each user can only read/write their own data
+
+    // ── 個人資料（文章 / 標籤）：僅限本人讀寫 ──
     match /users/{userId}/{document=**} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // ── 公告欄 ──
+    match /bulletins/{bulletinId} {
+      // 所有登入使用者可讀
+      allow read: if request.auth != null;
+
+      // 建立：必須是本人，且包含必要欄位
+      allow create: if request.auth != null
+        && request.resource.data.authorId == request.auth.uid
+        && request.resource.data.keys().hasAll(['title', 'content', 'category', 'authorId', 'authorName', 'createdAt']);
+
+      // 刪除：僅限作者本人
+      allow delete: if request.auth != null
+        && resource.data.authorId == request.auth.uid;
+
+      // 不允許編輯
+      allow update: if false;
+
+      // ── 留言子集合 ──
+      match /comments/{commentId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null
+          && request.resource.data.authorId == request.auth.uid
+          && request.resource.data.keys().hasAll(['content', 'authorId', 'authorName', 'createdAt']);
+        allow delete: if request.auth != null
+          && resource.data.authorId == request.auth.uid;
+        allow update: if false;
+      }
     }
   }
 }

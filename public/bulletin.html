@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>公告欄 — 文章收藏</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #08091a;
+      --bg2: #0d0f26;
+      --surface: #111328;
+      --border: #2a2d4a;
+      --gold: #c9a84c;
+      --gold-light: #f0d080;
+      --gold-dim: #7a6030;
+      --silver: #a8b4cc;
+      --text: #dde2f0;
+      --text-muted: #7080a0;
+      --danger: #f87171;
+      --glow: rgba(201,168,76,.35);
+      --glow-strong: rgba(201,168,76,.65);
+    }
+
+    @keyframes shimmer {
+      0%   { background-position: -200% center; }
+      100% { background-position:  200% center; }
+    }
+    @keyframes fade-up {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes star-twinkle {
+      0%,100% { opacity: .12; }
+      50%      { opacity: 1; }
+    }
+    @keyframes slide-down {
+      from { opacity: 0; transform: translateY(-10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes pulse-border {
+      0%,100% { border-color: var(--gold-dim); }
+      50%      { border-color: var(--gold); box-shadow: 0 0 16px var(--glow); }
+    }
+
+    html, body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang TC', 'Microsoft JhengHei', serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Starfield ── */
+    .stars { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+    .star {
+      position: absolute; border-radius: 50%; background: #fff;
+      animation: star-twinkle var(--dur,3s) ease-in-out infinite;
+      animation-delay: var(--delay,0s);
+    }
+
+    /* ── Header ── */
+    header {
+      position: sticky; top: 0; z-index: 100;
+      background: linear-gradient(180deg, rgba(8,9,26,.98), rgba(8,9,26,.9));
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+      display: flex; align-items: center; gap: 12px;
+      backdrop-filter: blur(12px);
+    }
+    .back-link {
+      color: var(--gold-dim); text-decoration: none;
+      font-size: .83rem; letter-spacing: .05em;
+      transition: color .2s; white-space: nowrap;
+    }
+    .back-link:hover { color: var(--gold); }
+    header h1 {
+      font-size: 1.15rem; font-weight: 700;
+      background: linear-gradient(135deg, var(--gold-light), var(--gold), var(--gold-dim));
+      background-size: 200% auto;
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: shimmer 4s linear infinite;
+      letter-spacing: .12em; white-space: nowrap;
+    }
+    .header-right {
+      margin-left: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    }
+    .nav-link {
+      text-decoration: none; font-size: .8rem; font-weight: 600;
+      color: var(--text-muted); padding: 4px 10px;
+      border-radius: 999px; border: 1px solid var(--border);
+      transition: color .2s, border-color .2s; white-space: nowrap;
+    }
+    .nav-link:hover { color: var(--silver); border-color: #4a5070; }
+    .user-name { font-size: .82rem; color: var(--text-muted); white-space: nowrap; }
+    .btn-hdr {
+      padding: 4px 11px; border-radius: 6px; border: 1px solid var(--border);
+      background: transparent; cursor: pointer; font-size: .8rem;
+      font-family: inherit; font-weight: 600; color: var(--text-muted);
+      transition: border-color .2s, color .2s; white-space: nowrap;
+    }
+    .btn-hdr:hover { border-color: #4a5070; color: var(--silver); }
+
+    /* ── Main ── */
+    .main {
+      position: relative; z-index: 1;
+      max-width: 780px; margin: 0 auto;
+      padding: 36px 20px 70px;
+      display: flex; flex-direction: column; gap: 22px;
+    }
+
+    /* ── Post toggle button ── */
+    .post-toggle-btn {
+      align-self: flex-start;
+      padding: 10px 28px; border-radius: 999px;
+      border: 1px solid var(--gold); background: transparent;
+      color: var(--gold); font-size: .9rem; font-weight: 600;
+      letter-spacing: .1em; cursor: pointer;
+      font-family: inherit;
+      transition: background .25s, box-shadow .25s;
+      animation: pulse-border 3s ease-in-out infinite;
+    }
+    .post-toggle-btn:hover, .post-toggle-btn.active {
+      background: rgba(201,168,76,.12);
+      box-shadow: 0 0 22px var(--glow);
+      animation: none;
+      border-color: var(--gold);
+    }
+
+    /* ── Post form card ── */
+    .post-form-card {
+      background: linear-gradient(160deg, #151830 0%, #0d0f26 60%, #0a0c1e 100%);
+      border: 1px solid var(--border);
+      border-radius: 20px; padding: 28px 30px;
+      position: relative; overflow: hidden;
+      animation: slide-down .3s ease both;
+    }
+    .post-form-card::before {
+      content: ''; position: absolute; inset: 0; border-radius: 20px;
+      background: radial-gradient(ellipse at 50% 0%, rgba(201,168,76,.07), transparent 65%);
+      pointer-events: none;
+    }
+    .post-form-card h3 {
+      font-size: 1rem; font-weight: 700;
+      color: var(--gold); letter-spacing: .14em; margin-bottom: 22px;
+    }
+    .form-group { margin-bottom: 16px; }
+    .form-label {
+      display: block; font-size: .73rem; font-weight: 700;
+      color: var(--gold-dim); letter-spacing: .18em;
+      text-transform: uppercase; margin-bottom: 7px;
+    }
+    .dark-input {
+      background: rgba(255,255,255,.04);
+      border: 1px solid var(--border);
+      border-radius: 10px; padding: 10px 14px;
+      color: var(--text); font-size: .92rem;
+      font-family: inherit; width: 100%; outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .dark-input:focus {
+      border-color: var(--gold-dim);
+      box-shadow: 0 0 0 3px rgba(201,168,76,.1);
+    }
+    .dark-input::placeholder { color: var(--text-muted); }
+    textarea.dark-input { resize: vertical; min-height: 90px; }
+    select.dark-input { cursor: pointer; appearance: none; }
+    select.dark-input option { background: #111328; color: var(--text); }
+
+    .form-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 8px; }
+    .btn-cancel {
+      padding: 8px 20px; border-radius: 8px;
+      border: 1px solid var(--border); background: transparent;
+      color: var(--text-muted); font-size: .86rem; font-weight: 600;
+      cursor: pointer; font-family: inherit; transition: border-color .2s, color .2s;
+    }
+    .btn-cancel:hover { border-color: #4a5070; color: var(--silver); }
+    .btn-submit {
+      padding: 8px 26px; border-radius: 8px;
+      border: 1px solid var(--gold); background: transparent;
+      color: var(--gold); font-size: .86rem; font-weight: 600;
+      cursor: pointer; font-family: inherit;
+      transition: background .2s, box-shadow .2s;
+    }
+    .btn-submit:hover { background: rgba(201,168,76,.13); box-shadow: 0 0 14px var(--glow); }
+    .btn-submit:disabled { opacity: .4; cursor: not-allowed; box-shadow: none; }
+
+    /* ── Section heading ── */
+    .section-heading {
+      font-size: .73rem; font-weight: 700;
+      color: var(--gold-dim); letter-spacing: .2em; text-transform: uppercase;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .section-heading::after {
+      content: ''; flex: 1; height: 1px;
+      background: linear-gradient(90deg, var(--border), transparent);
+    }
+
+    /* ── Bulletin card ── */
+    .bulletin-card {
+      background: linear-gradient(160deg, #151830 0%, #0d0f26 70%, #0a0c1e 100%);
+      border: 1px solid var(--border);
+      border-radius: 18px; padding: 22px 26px 18px;
+      position: relative; overflow: hidden;
+      transition: border-color .25s, box-shadow .25s;
+      animation: fade-up .5s ease both;
+    }
+    .bulletin-card::before {
+      content: ''; position: absolute; inset: 0; border-radius: 18px;
+      background: radial-gradient(ellipse at 50% 0%, rgba(201,168,76,.05), transparent 55%);
+      pointer-events: none;
+    }
+    .bulletin-card:hover {
+      border-color: var(--gold-dim);
+      box-shadow: 0 4px 28px rgba(201,168,76,.07);
+    }
+
+    .bulletin-top {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 14px; flex-wrap: wrap;
+    }
+    .cat-badge {
+      font-size: .7rem; font-weight: 700; letter-spacing: .1em;
+      padding: 3px 11px; border-radius: 999px; flex-shrink: 0;
+    }
+    .cat-公告 { background: rgba(201,168,76,.15); color: var(--gold);   border: 1px solid rgba(201,168,76,.3); }
+    .cat-討論 { background: rgba(96,165,250,.12); color: #93c5fd;       border: 1px solid rgba(96,165,250,.28); }
+    .cat-分享 { background: rgba(167,139,250,.12); color: #c4b5fd;      border: 1px solid rgba(167,139,250,.28); }
+    .cat-問答 { background: rgba(74,222,128,.1);  color: #86efac;       border: 1px solid rgba(74,222,128,.25); }
+    .cat-建議 { background: rgba(45,212,191,.1);  color: #5eead4;       border: 1px solid rgba(45,212,191,.25); }
+    .cat-其他 { background: rgba(148,163,184,.1); color: #94a3b8;       border: 1px solid rgba(148,163,184,.25); }
+
+    .bulletin-meta {
+      font-size: .77rem; color: var(--text-muted);
+      display: flex; align-items: center; gap: 5px; flex: 1; flex-wrap: wrap;
+    }
+    .sep { opacity: .4; }
+    .btn-delete-b {
+      padding: 2px 10px; border-radius: 999px;
+      border: 1px solid rgba(248,113,113,.3); background: transparent;
+      color: var(--danger); font-size: .7rem; font-weight: 600;
+      cursor: pointer; font-family: inherit; transition: background .2s;
+      white-space: nowrap;
+    }
+    .btn-delete-b:hover { background: rgba(248,113,113,.1); }
+
+    .bulletin-title {
+      font-size: 1.08rem; font-weight: 700;
+      color: var(--gold-light); letter-spacing: .06em; line-height: 1.45;
+      margin-bottom: 10px;
+    }
+    .bulletin-content {
+      font-size: .9rem; line-height: 1.85;
+      color: var(--silver); white-space: pre-wrap; word-break: break-word;
+    }
+
+    /* ── Comments toggle ── */
+    .btn-comments-toggle {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 16px; padding: 5px 16px;
+      border-radius: 999px; border: 1px solid var(--border);
+      background: transparent; color: var(--text-muted);
+      font-size: .77rem; font-weight: 600;
+      cursor: pointer; font-family: inherit;
+      transition: border-color .2s, color .2s, box-shadow .2s;
+      letter-spacing: .05em;
+    }
+    .btn-comments-toggle:hover { border-color: #4a5070; color: var(--silver); }
+    .btn-comments-toggle.expanded {
+      border-color: var(--gold-dim); color: var(--gold);
+      box-shadow: 0 0 10px rgba(201,168,76,.15);
+    }
+
+    /* ── Comments section ── */
+    .comments-section {
+      display: none; margin-top: 18px; padding-top: 18px;
+      border-top: 1px solid rgba(42,45,74,.9);
+    }
+    .comments-section.open { display: block; animation: fade-up .3s ease both; }
+
+    .comment-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+
+    .comment-card {
+      background: rgba(255,255,255,.025);
+      border: 1px solid rgba(42,45,74,.8);
+      border-radius: 10px; padding: 11px 15px;
+      animation: fade-up .25s ease both;
+    }
+    .comment-header {
+      display: flex; align-items: center; gap: 6px;
+      margin-bottom: 5px; flex-wrap: wrap;
+    }
+    .comment-author { font-size: .77rem; font-weight: 700; color: var(--gold); }
+    .comment-time   { font-size: .71rem; color: var(--text-muted); }
+    .comment-body   {
+      font-size: .86rem; color: var(--silver);
+      line-height: 1.7; white-space: pre-wrap; word-break: break-word;
+    }
+    .btn-delete-c {
+      margin-left: auto; background: none; border: none; cursor: pointer;
+      color: var(--text-muted); font-size: .75rem; font-weight: 700;
+      padding: 0 4px; border-radius: 3px; line-height: 1;
+      transition: color .15s;
+    }
+    .btn-delete-c:hover { color: var(--danger); }
+
+    .no-comments {
+      font-size: .8rem; color: var(--text-muted);
+      text-align: center; padding: 14px 0; letter-spacing: .06em;
+    }
+
+    /* Comment input row */
+    .comment-form { display: flex; gap: 8px; align-items: flex-end; }
+    .comment-form .dark-input { flex: 1; min-height: unset; resize: none; }
+    .btn-comment-send {
+      padding: 8px 18px; border-radius: 8px;
+      border: 1px solid var(--gold-dim); background: transparent;
+      color: var(--gold); font-size: .82rem; font-weight: 600;
+      cursor: pointer; font-family: inherit; white-space: nowrap;
+      transition: background .2s, box-shadow .2s;
+    }
+    .btn-comment-send:hover { background: rgba(201,168,76,.1); box-shadow: 0 0 10px var(--glow); }
+    .btn-comment-send:disabled { opacity: .4; cursor: not-allowed; box-shadow: none; }
+
+    /* ── Empty / Loading ── */
+    .empty-state {
+      text-align: center; padding: 64px 20px;
+      color: var(--text-muted); letter-spacing: .08em; line-height: 2;
+    }
+    .empty-state .icon { font-size: 2.6rem; display: block; margin-bottom: 12px; }
+    .loading-state {
+      text-align: center; padding: 52px 20px;
+      color: var(--gold-dim); letter-spacing: .2em; font-size: .9rem;
+    }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed; bottom: 28px; right: 28px;
+      background: #1a1d3a; color: var(--silver);
+      border: 1px solid var(--border);
+      padding: 10px 20px; border-radius: 10px;
+      font-size: .85rem; opacity: 0;
+      transition: opacity .3s; pointer-events: none; z-index: 999;
+      box-shadow: 0 4px 20px rgba(0,0,0,.4);
+    }
+    .toast.show { opacity: 1; }
+
+    @media (max-width: 540px) {
+      header { padding: 12px 14px; gap: 8px; }
+      .main { padding: 24px 12px 60px; }
+      .bulletin-card { padding: 18px 16px 14px; }
+      .post-form-card { padding: 22px 16px; }
+      .header-right { gap: 6px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Starfield -->
+<div class="stars" id="stars"></div>
+
+<header>
+  <a class="back-link" href="/">← 文章收藏</a>
+  <h1>📢 公告欄</h1>
+  <div class="header-right">
+    <a class="nav-link" href="/runes.html">🔮 神諭</a>
+    <span class="user-name" id="headerUserName"></span>
+    <button class="btn-hdr" onclick="location.href='/settings.html'">設定</button>
+    <button class="btn-hdr" onclick="logout()">登出</button>
+  </div>
+</header>
+
+<div class="main">
+
+  <!-- Post toggle -->
+  <button class="post-toggle-btn" id="postToggleBtn" onclick="togglePostForm()">✦ 發布新公告</button>
+
+  <!-- Post form (collapsed by default) -->
+  <div class="post-form-card" id="postFormCard" style="display:none">
+    <h3>✦ 發布公告</h3>
+    <form id="bulletinForm" onsubmit="postBulletin(event)">
+      <div class="form-group">
+        <label class="form-label">標題</label>
+        <input class="dark-input" type="text" id="postTitle"
+          placeholder="公告標題…" maxlength="120" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">分類</label>
+        <select class="dark-input" id="postCategory">
+          <option value="公告">📌 公告</option>
+          <option value="討論">💬 討論</option>
+          <option value="分享">📚 分享</option>
+          <option value="問答">❓ 問答</option>
+          <option value="建議">💡 建議</option>
+          <option value="其他">📣 其他</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">內容</label>
+        <textarea class="dark-input" id="postContent"
+          placeholder="公告內容…" rows="4" required></textarea>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn-cancel" onclick="togglePostForm()">取消</button>
+        <button type="submit" class="btn-submit" id="postSubmitBtn">✦ 發布</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Bulletins -->
+  <div class="section-heading">最新公告</div>
+  <div id="bulletinList">
+    <div class="loading-state">ᚱ 載入中…</div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Firebase SDK (compat) -->
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script>
+// ── Firebase init ──
+const firebaseConfig = {
+  apiKey: "AIzaSyDEWMEv-0vMixLtjPx2ZPiUzHgtW7cg1ug",
+  authDomain: "oz-workspace.firebaseapp.com",
+  projectId: "oz-workspace",
+  storageBucket: "oz-workspace.firebasestorage.app",
+  messagingSenderId: "128483648899",
+  appId: "1:128483648899:web:56b21e29cd2c677f7002b6"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db   = firebase.firestore();
+
+// ── State ──
+let currentUser    = null;
+let _bulletins     = [];
+const expandedSet  = new Set(); // bulletin IDs with open comments
+
+// ── Starfield ──
+(function generateStars() {
+  const c = document.getElementById('stars');
+  for (let i = 0; i < 110; i++) {
+    const s   = document.createElement('div');
+    s.className = 'star';
+    const sz  = Math.random() < .15 ? 3 : 2;
+    s.style.cssText = `left:${Math.random()*100}%;top:${Math.random()*100}%;`
+      + `width:${sz}px;height:${sz}px;`
+      + `--dur:${2+Math.random()*4}s;--delay:${Math.random()*5}s;`
+      + `opacity:${.1+Math.random()*.35};`;
+    c.appendChild(s);
+  }
+})();
+
+// ── Auth ──
+auth.onAuthStateChanged(user => {
+  if (!user) { window.location.replace('/login.html'); return; }
+  currentUser = user;
+  document.getElementById('headerUserName').textContent = user.displayName || user.email;
+  subscribeBulletins();
+});
+
+async function logout() {
+  await auth.signOut();
+  window.location.replace('/login.html');
+}
+
+// ── Post form toggle ──
+let postFormOpen = false;
+function togglePostForm() {
+  postFormOpen = !postFormOpen;
+  const card = document.getElementById('postFormCard');
+  const btn  = document.getElementById('postToggleBtn');
+  card.style.display = postFormOpen ? 'block' : 'none';
+  btn.textContent = postFormOpen ? '✕ 收起' : '✦ 發布新公告';
+  btn.classList.toggle('active', postFormOpen);
+}
+
+// ── Post bulletin ──
+async function postBulletin(e) {
+  e.preventDefault();
+  const title    = document.getElementById('postTitle').value.trim();
+  const category = document.getElementById('postCategory').value;
+  const content  = document.getElementById('postContent').value.trim();
+  if (!title || !content) return;
+
+  const btn = document.getElementById('postSubmitBtn');
+  btn.disabled = true; btn.textContent = '發布中…';
+
+  try {
+    await db.collection('bulletins').add({
+      title, category, content,
+      authorId:   currentUser.uid,
+      authorName: currentUser.displayName || currentUser.email,
+      createdAt:  firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    document.getElementById('bulletinForm').reset();
+    togglePostForm();
+    showToast('公告已發布 ✦');
+  } catch (err) {
+    showToast('發布失敗：' + (err.message || '請稍後再試'));
+  } finally {
+    btn.disabled = false; btn.textContent = '✦ 發布';
+  }
+}
+
+// ── Delete bulletin (cascade delete comments) ──
+async function deleteBulletin(id) {
+  if (!confirm('確定要刪除此公告？留言也會一併刪除。')) return;
+  try {
+    const batch      = db.batch();
+    const commSnap   = await db.collection('bulletins').doc(id).collection('comments').get();
+    commSnap.docs.forEach(d => batch.delete(d.ref));
+    batch.delete(db.collection('bulletins').doc(id));
+    await batch.commit();
+    expandedSet.delete(id);
+    showToast('公告已刪除');
+  } catch {
+    showToast('刪除失敗，請稍後再試');
+  }
+}
+
+// ── Subscribe bulletins (real-time) ──
+function subscribeBulletins() {
+  db.collection('bulletins')
+    .orderBy('createdAt', 'desc')
+    .onSnapshot(snap => {
+      _bulletins = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderBulletins();
+    }, () => showToast('無法載入公告'));
+}
+
+// ── Render bulletin list ──
+function renderBulletins() {
+  const list = document.getElementById('bulletinList');
+  if (_bulletins.length === 0) {
+    list.innerHTML = `<div class="empty-state">
+      <span class="icon">📭</span>
+      尚無公告<br>成為第一個發布者吧 ✦
+    </div>`;
+    return;
+  }
+  list.innerHTML = _bulletins.map((b, i) => renderCard(b, i)).join('');
+
+  // Re-open previously expanded comment sections
+  expandedSet.forEach(id => {
+    const section = document.getElementById(`cs-${id}`);
+    const btn     = document.getElementById(`ctb-${id}`);
+    if (section) {
+      section.classList.add('open');
+      btn?.classList.add('expanded');
+      loadComments(id);
+    }
+  });
+}
+
+// ── Render single bulletin card ──
+const CAT_EMOJI = { 公告:'📌', 討論:'💬', 分享:'📚', 問答:'❓', 建議:'💡', 其他:'📣' };
+
+function renderCard(b, idx) {
+  const isOwn = b.authorId === currentUser.uid;
+  const emoji = CAT_EMOJI[b.category] || '📣';
+  return `
+  <div class="bulletin-card" style="animation-delay:${idx * .06}s">
+    <div class="bulletin-top">
+      <span class="cat-badge cat-${escHtml(b.category)}">${emoji} ${escHtml(b.category)}</span>
+      <div class="bulletin-meta">
+        <span>${escHtml(b.authorName)}</span>
+        <span class="sep">·</span>
+        <span>${timeAgo(b.createdAt)}</span>
+      </div>
+      ${isOwn ? `<button class="btn-delete-b" onclick="deleteBulletin('${b.id}')">✕ 刪除</button>` : ''}
+    </div>
+    <div class="bulletin-title">${escHtml(b.title)}</div>
+    <div class="bulletin-content">${escHtml(b.content)}</div>
+    <button class="btn-comments-toggle" id="ctb-${b.id}"
+      onclick="toggleComments('${b.id}')">💬 留言</button>
+    <div class="comments-section" id="cs-${b.id}">
+      <div class="comment-list" id="cl-${b.id}">
+        <div class="no-comments">ᚱ 載入留言中…</div>
+      </div>
+      <div class="comment-form">
+        <textarea class="dark-input" id="ci-${b.id}" placeholder="輸入留言…" rows="2"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();addComment('${b.id}')}"></textarea>
+        <button class="btn-comment-send" id="cb-${b.id}"
+          onclick="addComment('${b.id}')">送出</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── Toggle comments section ──
+function toggleComments(id) {
+  const section = document.getElementById(`cs-${id}`);
+  const btn     = document.getElementById(`ctb-${id}`);
+  if (!section) return;
+  const isOpen  = section.classList.contains('open');
+  if (isOpen) {
+    section.classList.remove('open');
+    btn?.classList.remove('expanded');
+    expandedSet.delete(id);
+  } else {
+    section.classList.add('open');
+    btn?.classList.add('expanded');
+    expandedSet.add(id);
+    loadComments(id);
+  }
+}
+
+// ── Load comments (fetch once, called on expand / after add/delete) ──
+async function loadComments(id) {
+  const listEl = document.getElementById(`cl-${id}`);
+  if (!listEl) return;
+  try {
+    const snap = await db.collection('bulletins').doc(id)
+      .collection('comments').orderBy('createdAt', 'asc').get();
+    renderComments(id, snap.docs.map(d => ({ id: d.id, ...d.data() })));
+  } catch {
+    if (listEl) listEl.innerHTML = '<div class="no-comments">無法載入留言</div>';
+  }
+}
+
+// ── Render comments & update toggle button count ──
+function renderComments(bulletinId, comments) {
+  const listEl = document.getElementById(`cl-${bulletinId}`);
+  if (!listEl) return;
+
+  const btn = document.getElementById(`ctb-${bulletinId}`);
+  if (btn) {
+    btn.innerHTML = `💬 ${comments.length > 0 ? `${comments.length} 則留言` : '留言'}`;
+    if (expandedSet.has(bulletinId)) btn.classList.add('expanded');
+  }
+
+  if (comments.length === 0) {
+    listEl.innerHTML = '<div class="no-comments">尚無留言，來第一個留言吧 ✦</div>';
+    return;
+  }
+  listEl.innerHTML = comments.map(c => `
+    <div class="comment-card">
+      <div class="comment-header">
+        <span class="comment-author">${escHtml(c.authorName)}</span>
+        <span class="sep">·</span>
+        <span class="comment-time">${timeAgo(c.createdAt)}</span>
+        ${c.authorId === currentUser.uid
+          ? `<button class="btn-delete-c" onclick="deleteComment('${bulletinId}','${c.id}')" title="刪除">×</button>`
+          : ''}
+      </div>
+      <div class="comment-body">${escHtml(c.content)}</div>
+    </div>`).join('');
+}
+
+// ── Add comment ──
+async function addComment(bulletinId) {
+  const input   = document.getElementById(`ci-${bulletinId}`);
+  const btn     = document.getElementById(`cb-${bulletinId}`);
+  const content = input?.value.trim();
+  if (!content) return;
+
+  if (btn) { btn.disabled = true; btn.textContent = '送出中…'; }
+  try {
+    await db.collection('bulletins').doc(bulletinId).collection('comments').add({
+      content,
+      authorId:   currentUser.uid,
+      authorName: currentUser.displayName || currentUser.email,
+      createdAt:  firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    if (input) input.value = '';
+    await loadComments(bulletinId);
+  } catch {
+    showToast('留言失敗，請稍後再試');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '送出'; }
+  }
+}
+
+// ── Delete comment ──
+async function deleteComment(bulletinId, commentId) {
+  if (!confirm('確定要刪除此留言？')) return;
+  try {
+    await db.collection('bulletins').doc(bulletinId).collection('comments').doc(commentId).delete();
+    await loadComments(bulletinId);
+    showToast('留言已刪除');
+  } catch {
+    showToast('刪除失敗');
+  }
+}
+
+// ── Helpers ──
+function timeAgo(val) {
+  if (!val) return '—';
+  const d    = val.toDate ? val.toDate() : new Date(val);
+  const diff = (Date.now() - d.getTime()) / 1000;
+  if (diff < 60)      return '剛才';
+  if (diff < 3600)    return `${Math.floor(diff/60)} 分鐘前`;
+  if (diff < 86400)   return `${Math.floor(diff/3600)} 小時前`;
+  if (diff < 2592000) return `${Math.floor(diff/86400)} 天前`;
+  return d.toLocaleDateString('zh-TW', { month:'2-digit', day:'2-digit' });
+}
+
+function escHtml(s) {
+  if (!s) return '';
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+let _toastTimer;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+}
+</script>
+</body>
+</html>
