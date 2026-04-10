@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>為明日而占・易經</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #08091a;
+      --bg2: #0d0f26;
+      --surface: #111328;
+      --border: #2a2d4a;
+      --gold: #c9a84c;
+      --gold-light: #f0d080;
+      --gold-dim: #7a6030;
+      --silver: #a8b4cc;
+      --text: #dde2f0;
+      --text-muted: #7080a0;
+      --glow: rgba(201,168,76,.35);
+      --glow-strong: rgba(201,168,76,.7);
+    }
+
+    @keyframes pulse-glow {
+      0%,100% { box-shadow: 0 0 20px var(--glow), 0 0 60px var(--glow); }
+      50%      { box-shadow: 0 0 40px var(--glow-strong), 0 0 100px var(--glow); }
+    }
+    @keyframes float {
+      0%,100% { transform: translateY(0); }
+      50%      { transform: translateY(-8px); }
+    }
+    @keyframes shimmer {
+      0%   { background-position: -200% center; }
+      100% { background-position:  200% center; }
+    }
+    @keyframes flip-in {
+      0%   { transform: rotateY(90deg) scale(.8); opacity: 0; }
+      60%  { transform: rotateY(-8deg) scale(1.03); opacity: 1; }
+      100% { transform: rotateY(0deg) scale(1); }
+    }
+    @keyframes fade-up {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes star-twinkle {
+      0%,100% { opacity: .2; }
+      50%      { opacity: 1; }
+    }
+    @keyframes coin-spin {
+      0%   { transform: rotateY(0deg) scale(1); }
+      40%  { transform: rotateY(720deg) scale(1.15); }
+      100% { transform: rotateY(1080deg) scale(1); }
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang TC', 'Microsoft JhengHei', serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Starfield ── */
+    .stars { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+    .star {
+      position: absolute; width: 2px; height: 2px;
+      background: #fff; border-radius: 50%;
+      animation: star-twinkle var(--dur, 3s) ease-in-out infinite;
+      animation-delay: var(--delay, 0s);
+    }
+
+    /* ── Header ── */
+    header {
+      position: sticky; top: 0; z-index: 100;
+      background: linear-gradient(180deg, rgba(8,9,26,.98) 0%, rgba(8,9,26,.9) 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+      display: flex; align-items: center; gap: 16px;
+      backdrop-filter: blur(12px);
+    }
+    .header-right {
+      margin-left: auto; display: flex; align-items: center;
+      gap: 8px; flex-wrap: wrap;
+    }
+    .nav-link {
+      text-decoration: none; font-size: .8rem; font-weight: 600;
+      color: var(--text-muted); padding: 4px 10px;
+      border-radius: 999px; border: 1px solid var(--border);
+      transition: color .2s, border-color .2s; white-space: nowrap;
+    }
+    .nav-link:hover { color: var(--silver); border-color: #4a5070; }
+    header h1 {
+      font-size: 1.15rem; font-weight: 700;
+      background: linear-gradient(135deg, var(--gold-light), var(--gold), var(--gold-dim));
+      background-size: 200% auto;
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: shimmer 4s linear infinite;
+      letter-spacing: .12em;
+    }
+    .user-name { font-size: .82rem; color: var(--text-muted); white-space: nowrap; }
+    .btn-hdr {
+      padding: 4px 11px; border-radius: 6px; border: 1px solid var(--border);
+      background: transparent; cursor: pointer; font-size: .8rem;
+      font-family: inherit; font-weight: 600; color: var(--text-muted);
+      transition: border-color .2s, color .2s; white-space: nowrap;
+    }
+    .btn-hdr:hover { border-color: #4a5070; color: var(--silver); }
+
+    /* ── Main ── */
+    .main {
+      position: relative; z-index: 1;
+      max-width: 760px; margin: 0 auto;
+      padding: 40px 20px 60px;
+      display: flex; flex-direction: column; align-items: center; gap: 32px;
+    }
+
+    /* ── Instruction ── */
+    .instruction {
+      width: 100%;
+      background: linear-gradient(135deg, rgba(20,22,45,.9), rgba(13,15,38,.9));
+      border: 1px solid var(--border); border-radius: 16px;
+      padding: 20px 28px; text-align: center;
+    }
+    .instruction p {
+      font-size: 1rem; line-height: 1.8;
+      color: var(--silver); letter-spacing: .06em;
+    }
+    .instr-deco {
+      display: block; font-size: 1.8rem; color: var(--gold-dim);
+      margin-bottom: 8px; letter-spacing: .3em;
+    }
+
+    /* ── Method tabs ── */
+    .method-tabs {
+      display: flex; gap: 12px; width: 100%;
+    }
+    .method-tab {
+      flex: 1; padding: 10px 16px; border-radius: 10px;
+      border: 1px solid var(--border); background: transparent;
+      color: var(--text-muted); font-family: inherit; font-size: .88rem;
+      font-weight: 600; cursor: pointer; transition: all .2s; letter-spacing: .05em;
+    }
+    .method-tab.active {
+      border-color: var(--gold); color: var(--gold);
+      background: rgba(201,168,76,.08);
+      box-shadow: 0 0 12px var(--glow);
+    }
+    .method-tab:hover:not(.active) { border-color: #4a5070; color: var(--silver); }
+
+    /* ── Method panels ── */
+    .method-panel { display: none; width: 100%; }
+    .method-panel.active { display: block; }
+
+    /* ── Coin toss ── */
+    .coin-section {
+      background: linear-gradient(135deg, rgba(17,19,40,.95), rgba(10,12,30,.95));
+      border: 1px solid var(--border); border-radius: 16px;
+      padding: 28px 24px; text-align: center;
+    }
+    .coin-rows { display: flex; flex-direction: column; gap: 14px; margin-bottom: 24px; }
+    .coin-row {
+      display: flex; align-items: center; gap: 12px;
+    }
+    .row-label {
+      width: 48px; text-align: right;
+      font-size: .78rem; color: var(--text-muted); letter-spacing: .06em; flex-shrink: 0;
+    }
+    .coins {
+      display: flex; gap: 12px; flex: 1; justify-content: center;
+    }
+    .coin {
+      width: 44px; height: 44px; border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #3a3010, #1a1500);
+      border: 2px solid var(--gold-dim);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem; color: var(--gold-dim);
+      transition: all .3s;
+    }
+    .coin.heads { background: radial-gradient(circle at 35% 35%, #c9a84c, #8a6020); border-color: var(--gold-light); color: #fff; font-size: .7rem; font-weight: 700; }
+    .coin.tails { background: radial-gradient(circle at 35% 35%, #555, #222); border-color: #888; color: #ccc; font-size: .7rem; font-weight: 700; }
+    .coin.spinning { animation: coin-spin .6s ease forwards; }
+    .row-result {
+      width: 80px; text-align: left; flex-shrink: 0;
+      font-size: .8rem; letter-spacing: .04em;
+    }
+    .row-result.yang { color: var(--gold); }
+    .row-result.yin  { color: var(--silver); }
+    .row-result.old-yang { color: var(--gold-light); font-weight: 700; }
+    .row-result.old-yin  { color: #c090f0; font-weight: 700; }
+
+    .toss-btn {
+      padding: 12px 40px; border-radius: 999px;
+      border: 1px solid var(--gold); background: transparent;
+      color: var(--gold); font-size: .95rem; font-weight: 600;
+      letter-spacing: .12em; cursor: pointer;
+      transition: background .2s, box-shadow .2s; font-family: inherit;
+      animation: pulse-glow 3s ease-in-out infinite;
+    }
+    .toss-btn:hover { background: rgba(201,168,76,.12); box-shadow: 0 0 20px var(--glow); }
+    .toss-btn:active { transform: scale(.97); }
+
+    /* ── Manual input ── */
+    .manual-section {
+      background: linear-gradient(135deg, rgba(17,19,40,.95), rgba(10,12,30,.95));
+      border: 1px solid var(--border); border-radius: 16px;
+      padding: 28px 24px;
+    }
+    .manual-rows { display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px; }
+    .manual-row { display: flex; align-items: center; gap: 12px; }
+    .manual-row .row-label { width: 48px; }
+    .yao-btns { display: flex; gap: 8px; flex: 1; flex-wrap: wrap; }
+    .yao-btn {
+      flex: 1; min-width: 68px; padding: 7px 4px;
+      border-radius: 8px; border: 1px solid var(--border);
+      background: transparent; color: var(--text-muted);
+      font-family: inherit; font-size: .78rem; font-weight: 600;
+      cursor: pointer; transition: all .2s; letter-spacing: .02em; text-align: center;
+    }
+    .yao-btn:hover { border-color: #4a5070; color: var(--silver); }
+    .yao-btn.sel-9  { border-color: var(--gold-light); color: var(--gold-light); background: rgba(240,208,128,.1); }
+    .yao-btn.sel-7  { border-color: var(--gold); color: var(--gold); background: rgba(201,168,76,.08); }
+    .yao-btn.sel-8  { border-color: var(--silver); color: var(--silver); background: rgba(168,180,204,.08); }
+    .yao-btn.sel-6  { border-color: #c090f0; color: #c090f0; background: rgba(192,144,240,.1); }
+    .manual-line-display {
+      width: 36px; flex-shrink: 0; font-size: .7rem; color: var(--text-muted);
+      text-align: center; line-height: 1.2;
+    }
+    .manual-submit-btn {
+      display: block; width: 100%; padding: 12px;
+      border-radius: 10px; border: 1px solid var(--gold);
+      background: transparent; color: var(--gold);
+      font-size: .92rem; font-weight: 600; letter-spacing: .1em;
+      cursor: pointer; transition: background .2s, box-shadow .2s; font-family: inherit;
+    }
+    .manual-submit-btn:hover { background: rgba(201,168,76,.1); box-shadow: 0 0 16px var(--glow); }
+    .manual-submit-btn:disabled { opacity: .4; cursor: default; }
+
+    /* ── Results ── */
+    .results-area { width: 100%; display: flex; flex-direction: column; gap: 28px; }
+
+    /* ── Hexagram card ── */
+    .hex-card {
+      background: linear-gradient(160deg, #151830 0%, #0d0f26 60%, #0a0c1e 100%);
+      border: 1px solid var(--border); border-radius: 20px;
+      padding: 32px 28px 36px;
+      position: relative; overflow: hidden;
+      animation: flip-in .7s cubic-bezier(.34,1.56,.64,1) forwards;
+    }
+    .hex-card::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 50% 0%, rgba(201,168,76,.08) 0%, transparent 65%);
+      pointer-events: none;
+    }
+    .hex-card-label {
+      font-size: .72rem; font-weight: 700; letter-spacing: .2em;
+      color: var(--gold-dim); text-transform: uppercase;
+      margin-bottom: 16px; display: flex; align-items: center; gap: 10px;
+    }
+    .hex-card-label::after {
+      content: ''; flex: 1; height: 1px;
+      background: linear-gradient(90deg, var(--border), transparent);
+    }
+    .hex-card-label.ben  { color: var(--gold); }
+    .hex-card-label.hu   { color: #80c0d0; }
+    .hex-card-label.zhi  { color: #a0d090; }
+    .hex-card-label.cuo  { color: #c090f0; }
+
+    .hex-top {
+      display: flex; gap: 24px; align-items: flex-start; margin-bottom: 24px;
+    }
+
+    /* Hexagram line diagram */
+    .hex-diagram {
+      flex-shrink: 0; display: flex; flex-direction: column-reverse;
+      gap: 5px; padding-top: 4px;
+    }
+    .hex-line {
+      display: flex; gap: 6px; align-items: center;
+    }
+    .yang-bar {
+      width: 40px; height: 6px;
+      background: linear-gradient(90deg, var(--gold-dim), var(--gold), var(--gold-dim));
+      border-radius: 3px;
+    }
+    .yin-bar {
+      width: 40px; height: 6px; display: flex; gap: 6px;
+    }
+    .yin-bar span {
+      flex: 1; background: linear-gradient(90deg, var(--gold-dim), var(--gold), var(--gold-dim));
+      border-radius: 3px;
+    }
+    .hex-line.changing .yang-bar,
+    .hex-line.changing .yin-bar span {
+      background: linear-gradient(90deg, #8040c0, #c090f0, #8040c0);
+    }
+    .changing-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: #c090f0; flex-shrink: 0;
+    }
+
+    .hex-info { flex: 1; min-width: 0; }
+    .hex-symbol {
+      font-size: 3.2rem; line-height: 1; color: var(--gold-light);
+      text-shadow: 0 0 20px var(--glow-strong), 0 0 50px var(--glow);
+      margin-bottom: 6px;
+    }
+    .hex-name {
+      font-size: 1.25rem; font-weight: 700;
+      color: var(--gold); letter-spacing: .12em; margin-bottom: 2px;
+    }
+    .hex-trigrams {
+      font-size: .78rem; color: var(--text-muted);
+      letter-spacing: .08em; margin-bottom: 10px;
+    }
+    .hex-guaci {
+      font-size: .9rem; color: var(--silver);
+      letter-spacing: .06em; line-height: 1.6;
+    }
+    .hex-baihua {
+      font-size: .82rem; color: var(--text-muted);
+      line-height: 1.65; margin-top: 4px; letter-spacing: .04em;
+    }
+
+    .divider {
+      width: 60%; height: 1px; margin: 20px auto;
+      background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
+    }
+
+    /* Changing yao section */
+    .changing-yao-section { margin-top: 4px; }
+    .changing-yao-title {
+      font-size: .72rem; font-weight: 700; color: var(--gold-dim);
+      letter-spacing: .18em; text-transform: uppercase;
+      display: flex; align-items: center; gap: 8px; margin-bottom: 14px;
+    }
+    .changing-yao-title::after {
+      content: ''; flex: 1; height: 1px;
+      background: linear-gradient(90deg, var(--border), transparent);
+    }
+    .yao-entry { margin-bottom: 18px; padding-bottom: 18px; border-bottom: 1px solid rgba(42,45,74,.6); }
+    .yao-entry:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+    .yao-ci {
+      font-size: .88rem; color: var(--gold); letter-spacing: .06em;
+      margin-bottom: 4px; font-weight: 700;
+    }
+    .yao-baihua {
+      font-size: .82rem; color: var(--silver); line-height: 1.65;
+      margin-bottom: 10px; letter-spacing: .04em;
+    }
+    .yao-fields { display: flex; flex-direction: column; gap: 7px; }
+    .yao-field { display: flex; gap: 10px; align-items: flex-start; }
+    .yao-field-label {
+      font-size: .7rem; font-weight: 700; color: var(--gold-dim);
+      letter-spacing: .12em; text-transform: uppercase;
+      flex-shrink: 0; width: 56px; padding-top: 1px;
+    }
+    .yao-field-val {
+      font-size: .84rem; color: var(--text); line-height: 1.65; flex: 1;
+    }
+    .yao-field-val.action { color: var(--gold-light); }
+    .yao-field-val.taboo  { color: #e08080; }
+
+    /* Transition banner */
+    .transition-banner {
+      background: rgba(42,45,74,.4); border: 1px solid rgba(42,45,74,.8);
+      border-radius: 10px; padding: 12px 18px;
+      font-size: .82rem; color: var(--silver); line-height: 1.65;
+      letter-spacing: .04em; margin-top: 8px;
+    }
+    .transition-banner strong { color: var(--gold-dim); }
+
+    /* ── Again button ── */
+    .again-btn {
+      display: block; margin: 8px auto 0;
+      padding: 12px 40px; border-radius: 999px;
+      border: 1px solid var(--gold); background: transparent;
+      color: var(--gold); font-size: .9rem; font-weight: 600;
+      letter-spacing: .12em; cursor: pointer;
+      transition: background .2s, box-shadow .2s; font-family: inherit;
+      animation: fade-up .5s .6s both;
+    }
+    .again-btn:hover { background: rgba(201,168,76,.12); box-shadow: 0 0 20px var(--glow); }
+    .again-btn:active { transform: scale(.97); }
+
+    /* ── History ── */
+    .history-area { display: none; width: 100%; animation: fade-up .5s ease both; }
+    .history-area.visible { display: block; }
+    .history-heading {
+      font-size: .73rem; font-weight: 700; color: var(--gold-dim);
+      letter-spacing: .2em; text-transform: uppercase;
+      display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
+    }
+    .history-heading::after {
+      content: ''; flex: 1; height: 1px;
+      background: linear-gradient(90deg, var(--border), transparent);
+    }
+    .history-list { display: flex; flex-direction: column; gap: 10px; }
+    .history-item {
+      background: linear-gradient(160deg, #141728, #0d0f26);
+      border: 1px solid var(--border); border-radius: 14px;
+      transition: border-color .2s;
+    }
+    .history-item:hover { border-color: var(--gold-dim); }
+    .history-summary {
+      padding: 14px 18px; cursor: pointer;
+      display: flex; align-items: flex-start; gap: 12px;
+    }
+    .history-meta { flex: 1; min-width: 0; }
+    .history-date { font-size: .72rem; color: var(--text-muted); letter-spacing: .08em; margin-bottom: 5px; }
+    .history-preview { font-size: .9rem; color: var(--silver); }
+    .history-toggle { font-size: .8rem; color: var(--text-muted); flex-shrink: 0; transition: transform .2s; }
+    .history-item.open .history-toggle { transform: rotate(180deg); }
+    .history-detail { display: none; padding: 0 18px 16px; border-top: 1px solid rgba(42,45,74,.7); }
+    .history-item.open .history-detail { display: block; }
+    .history-empty { text-align: center; padding: 32px 20px; color: var(--text-muted); font-size: .85rem; }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed; bottom: 28px; right: 28px;
+      background: #1a1d3a; color: var(--silver);
+      border: 1px solid var(--border);
+      padding: 10px 20px; border-radius: 10px;
+      font-size: .85rem; opacity: 0;
+      transition: opacity .3s; pointer-events: none; z-index: 999;
+    }
+    .toast.show { opacity: 1; }
+
+    @media (max-width: 540px) {
+      .hex-top { flex-direction: column; gap: 16px; }
+      .hex-symbol { font-size: 2.4rem; }
+      .yao-btn { min-width: 55px; font-size: .72rem; }
+      .method-tabs { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="stars" id="stars"></div>
+
+<header>
+  <h1>☯ 為明日而占</h1>
+  <div class="header-right">
+    <a class="nav-link" href="/index.html">📰 文章收藏</a>
+    <a class="nav-link" href="/bulletin.html">📢 公告欄</a>
+    <a class="nav-link" href="/runes.html">🔮 神諭</a>
+    <a class="nav-link" href="/dream.html">🌙 解夢</a>
+    <a class="nav-link" href="/rainbow.html">🌈 彩虹卡</a>
+    <a class="nav-link" href="/morning.html">🌅 晨間儀式</a>
+    <a class="nav-link" href="/iching.html">☯ 易經占卜</a>
+    <span class="user-name" id="headerUserName"></span>
+    <button class="btn-hdr" onclick="location.href='/settings.html'">設定</button>
+    <button class="btn-hdr" onclick="logout()">登出</button>
+  </div>
+</header>
+
+<div class="main">
+
+  <div class="instruction">
+    <span class="instr-deco">☰ ☱ ☲ ☳ ☴ ☵ ☶ ☷</span>
+    <p>靜心默念心中的問題，感受天地之氣<br>選擇占卜方式，擲錢定爻，觀卦明道</p>
+  </div>
+
+  <!-- Method tabs -->
+  <div class="method-tabs">
+    <button class="method-tab active" id="tabCoin" onclick="switchMethod('coin')">🪙 數位擲錢法</button>
+    <button class="method-tab" id="tabManual" onclick="switchMethod('manual')">✍️ 手動輸入法</button>
+  </div>
+
+  <!-- Coin toss panel -->
+  <div class="method-panel active" id="panelCoin">
+    <div class="coin-section">
+      <div class="coin-rows" id="coinRows"></div>
+      <button class="toss-btn" id="tossBtn" onclick="startToss()">擲 錢 問 卦</button>
+    </div>
+  </div>
+
+  <!-- Manual panel -->
+  <div class="method-panel" id="panelManual">
+    <div class="manual-section">
+      <div class="manual-rows" id="manualRows"></div>
+      <button class="manual-submit-btn" id="manualSubmit" onclick="submitManual()" disabled>觀 卦 解 象</button>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="results-area" id="resultsArea" style="display:none"></div>
+
+  <!-- Again button -->
+  <button class="again-btn" id="againBtn" style="display:none" onclick="resetAll()">再次占卜</button>
+
+  <!-- History -->
+  <div class="history-area" id="historyArea">
+    <div class="history-heading">占卜歷程記錄</div>
+    <div class="history-list" id="historyList">
+      <div class="history-empty">登入後可查看歷史記錄</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="/js/iching-data.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script>
+// ── Firebase ──
+const firebaseConfig = {
+  apiKey: "AIzaSyDNi0mq83yb_xhlSf21cz_UL6J6CrgbFAg",
+  authDomain: "news-collector-4c137.firebaseapp.com",
+  projectId: "news-collector-4c137",
+  storageBucket: "news-collector-4c137.appspot.com",
+  messagingSenderId: "440021893533",
+  appId: "1:440021893533:web:ceaa0df88c4d3a6d1fd78a"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db   = firebase.firestore();
+
+let currentUser = null;
+auth.onAuthStateChanged(u => {
+  currentUser = u;
+  document.getElementById('headerUserName').textContent = u ? (u.displayName || u.email || '') : '';
+  if (u) loadHistory();
+  else {
+    document.getElementById('historyArea').classList.remove('visible');
+    document.getElementById('historyList').innerHTML = '<div class="history-empty">登入後可查看歷史記錄</div>';
+  }
+});
+
+function logout() {
+  auth.signOut().then(() => location.href = '/index.html').catch(() => {});
+}
+
+// ── Starfield ──
+(function() {
+  const container = document.getElementById('stars');
+  for (let i = 0; i < 80; i++) {
+    const s = document.createElement('div');
+    s.className = 'star';
+    s.style.cssText = `left:${Math.random()*100}%;top:${Math.random()*100}%;--dur:${2+Math.random()*4}s;--delay:${Math.random()*4}s`;
+    container.appendChild(s);
+  }
+})();
+
+// ── Toast ──
+function showToast(msg, ms = 2500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), ms);
+}
+
+// ── Method switch ──
+function switchMethod(method) {
+  document.getElementById('tabCoin').classList.toggle('active', method === 'coin');
+  document.getElementById('tabManual').classList.toggle('active', method === 'manual');
+  document.getElementById('panelCoin').classList.toggle('active', method === 'coin');
+  document.getElementById('panelManual').classList.toggle('active', method === 'manual');
+}
+
+// ── Row labels (bottom to top = 初→上) ──
+const ROW_LABELS = ['初爻','二爻','三爻','四爻','五爻','上爻'];
+
+// ── Build coin rows ──
+(function buildCoinRows() {
+  const container = document.getElementById('coinRows');
+  for (let row = 0; row < 6; row++) {
+    const div = document.createElement('div');
+    div.className = 'coin-row';
+    div.innerHTML = `
+      <span class="row-label">${ROW_LABELS[row]}</span>
+      <div class="coins" id="coins-${row}">
+        <div class="coin" id="c${row}-0">🪙</div>
+        <div class="coin" id="c${row}-1">🪙</div>
+        <div class="coin" id="c${row}-2">🪙</div>
+      </div>
+      <div class="row-result" id="res-${row}"></div>`;
+    container.appendChild(div);
+  }
+})();
+
+// ── Build manual rows ──
+const manualValues = [null,null,null,null,null,null]; // 6 rows, each null or number
+(function buildManualRows() {
+  const container = document.getElementById('manualRows');
+  for (let row = 0; row < 6; row++) {
+    const div = document.createElement('div');
+    div.className = 'manual-row';
+    div.innerHTML = `
+      <span class="row-label">${ROW_LABELS[row]}</span>
+      <div class="yao-btns">
+        <button class="yao-btn" onclick="selectYao(${row},9)">老陽 ○<br><small>9</small></button>
+        <button class="yao-btn" onclick="selectYao(${row},7)">少陽<br><small>7</small></button>
+        <button class="yao-btn" onclick="selectYao(${row},8)">少陰<br><small>8</small></button>
+        <button class="yao-btn" onclick="selectYao(${row},6)">老陰 ×<br><small>6</small></button>
+      </div>
+      <div class="manual-line-display" id="mld-${row}"></div>`;
+    container.appendChild(div);
+  }
+})();
+
+function selectYao(row, val) {
+  manualValues[row] = val;
+  // Update button styles
+  const btns = document.querySelectorAll(`#manualRows .manual-row:nth-child(${row+1}) .yao-btn`);
+  const classes = ['sel-9','sel-7','sel-8','sel-6'];
+  const vals = [9,7,8,6];
+  btns.forEach((btn, i) => {
+    btn.className = 'yao-btn';
+    if (vals[i] === val) btn.classList.add(classes[i]);
+  });
+  // Update line display
+  const disp = document.getElementById(`mld-${row}`);
+  disp.innerHTML = lineHTML(val);
+  // Check if all filled
+  const allFilled = manualValues.every(v => v !== null);
+  document.getElementById('manualSubmit').disabled = !allFilled;
+}
+
+// ── Line display helpers ──
+function lineHTML(val) {
+  // val: 9=老陽, 7=少陽, 8=少陰, 6=老陰
+  const isYang = val === 9 || val === 7;
+  const isChanging = val === 9 || val === 6;
+  if (isYang) {
+    return `<div style="width:36px;height:5px;background:linear-gradient(90deg,${isChanging?'#8040c0,#c090f0,#8040c0':'var(--gold-dim),var(--gold),var(--gold-dim)'});border-radius:3px"></div>`;
+  } else {
+    const c = isChanging ? '#8040c0,#c090f0,#8040c0' : 'var(--gold-dim),var(--gold),var(--gold-dim)';
+    return `<div style="display:flex;gap:3px;width:36px"><div style="flex:1;height:5px;background:linear-gradient(90deg,${c});border-radius:3px"></div><div style="flex:1;height:5px;background:linear-gradient(90deg,${c});border-radius:3px"></div></div>`;
+  }
+}
+
+// ── Coin toss logic ──
+let tossResults = null; // array of 6 values (6,7,8,9), bottom to top
+
+function startToss() {
+  const btn = document.getElementById('tossBtn');
+  btn.disabled = true;
+  tossResults = [];
+  let rowsDone = 0;
+
+  function tossRow(row) {
+    const results = [];
+    for (let c = 0; c < 3; c++) {
+      results.push(Math.random() < .5 ? 3 : 2); // head=3, tail=2
+    }
+    const sum = results.reduce((a,b) => a+b, 0); // 6,7,8,9
+    tossResults.push(sum);
+
+    // Animate coins
+    for (let c = 0; c < 3; c++) {
+      const coinEl = document.getElementById(`c${row}-${c}`);
+      coinEl.className = 'coin spinning';
+      setTimeout(() => {
+        const isHead = results[c] === 3;
+        coinEl.className = 'coin ' + (isHead ? 'heads' : 'tails');
+        coinEl.textContent = isHead ? '正' : '反';
+      }, 400 + c * 80);
+    }
+
+    setTimeout(() => {
+      const resEl = document.getElementById(`res-${row}`);
+      const labels = {9:'老陽 ○', 8:'少陰', 7:'少陽', 6:'老陰 ×'};
+      const cls    = {9:'old-yang', 8:'yin', 7:'yang', 6:'old-yin'};
+      resEl.textContent = labels[sum];
+      resEl.className = 'row-result ' + cls[sum];
+      rowsDone++;
+      if (rowsDone < 6) {
+        setTimeout(() => tossRow(rowsDone), 200);
+      } else {
+        btn.disabled = false;
+        setTimeout(() => showResults(tossResults), 400);
+      }
+    }, 700);
+  }
+
+  tossRow(0);
+}
+
+// ── Manual submit ──
+function submitManual() {
+  showResults([...manualValues]);
+}
+
+// ── Trigram lookup ──
+// lines: array of 3 booleans (yang=true), bottom to top
+// trigram binary: [l1,l2,l3] where l1=bottom
+const TRIGRAMS = {
+  '111': '乾', '110': '兌', '101': '離', '100': '震',
+  '011': '巽', '010': '坎', '001': '艮', '000': '坤'
+};
+
+function trigramKey(l1, l2, l3) {
+  return (l1?'1':'0') + (l2?'1':'0') + (l3?'1':'0');
+}
+
+// Find hexagram number by upper+lower trigrams
+function findHexNum(upper, lower) {
+  for (const [k, h] of Object.entries(ICHING_DATA)) {
+    if (h.upper === upper && h.lower === lower) return parseInt(k);
+  }
+  return 1;
+}
+
+// ── Four hexagram calculation ──
+function calcHexagrams(vals) {
+  // vals: array of 6 (index 0=初爻/bottom, 5=上爻/top)
+  // yang: 9 or 7; yin: 8 or 6
+  const isYang = vals.map(v => v === 9 || v === 7);
+  const isChanging = vals.map(v => v === 9 || v === 6);
+
+  // 本卦
+  const benUpper = TRIGRAMS[trigramKey(isYang[3], isYang[4], isYang[5])];
+  const benLower = TRIGRAMS[trigramKey(isYang[0], isYang[1], isYang[2])];
+  const benNum   = findHexNum(benUpper, benLower);
+
+  // 之卦: changing lines flip
+  const zhiYang = isYang.map((y, i) => isChanging[i] ? !y : y);
+  const zhiUpper = TRIGRAMS[trigramKey(zhiYang[3], zhiYang[4], zhiYang[5])];
+  const zhiLower = TRIGRAMS[trigramKey(zhiYang[0], zhiYang[1], zhiYang[2])];
+  const zhiNum   = findHexNum(zhiUpper, zhiLower);
+
+  // 互卦: lines 2-4 = lower, lines 3-5 = upper (1-indexed)
+  // 0-indexed: lower = lines[1,2,3], upper = lines[2,3,4]
+  const huLower = TRIGRAMS[trigramKey(isYang[1], isYang[2], isYang[3])];
+  const huUpper = TRIGRAMS[trigramKey(isYang[2], isYang[3], isYang[4])];
+  const huNum   = findHexNum(huUpper, huLower);
+
+  // 錯卦: all lines inverted
+  const cuoYang = isYang.map(y => !y);
+  const cuoUpper = TRIGRAMS[trigramKey(cuoYang[3], cuoYang[4], cuoYang[5])];
+  const cuoLower = TRIGRAMS[trigramKey(cuoYang[0], cuoYang[1], cuoYang[2])];
+  const cuoNum   = findHexNum(cuoUpper, cuoLower);
+
+  return {
+    ben:  {num: benNum,  isYang, isChanging},
+    zhi:  {num: zhiNum,  isYang: zhiYang,  isChanging: Array(6).fill(false)},
+    hu:   {num: huNum,   isYang: [isYang[1],isYang[2],isYang[3],isYang[2],isYang[3],isYang[4]], isChanging: Array(6).fill(false)},
+    cuo:  {num: cuoNum,  isYang: cuoYang,  isChanging: Array(6).fill(false)},
+    changingLines: vals.map((v,i) => isChanging[i] ? i : -1).filter(i => i >= 0),
+    originalVals: vals,
+  };
+}
+
+// ── Build hex diagram HTML ──
+function buildHexDiagram(isYang, isChanging) {
+  // Display bottom to top (visual: top line on top, so we reverse for display)
+  let html = '<div class="hex-diagram">';
+  for (let i = 0; i < 6; i++) { // i=0 bottom, i=5 top; diagram shows bottom first (column-reverse)
+    const yang = isYang[i];
+    const changing = isChanging ? isChanging[i] : false;
+    html += `<div class="hex-line${changing?' changing':''}">`;
+    if (yang) {
+      html += '<div class="yang-bar"></div>';
+    } else {
+      html += '<div class="yin-bar"><span></span><span></span></div>';
+    }
+    if (changing) html += '<div class="changing-dot"></div>';
+    html += '</div>';
+  }
+  html += '</div>';
+  return html;
+}
+
+// ── Build hex card HTML ──
+function buildHexCard(hexData, labelText, labelClass, changingLines, originalVals) {
+  const h = ICHING_DATA[hexData.num];
+  if (!h) return '';
+
+  let changingYaoHTML = '';
+  if (changingLines && changingLines.length > 0) {
+    const yaoNums = ['初','二','三','四','五','上'];
+    const yaoTypes = {9:'九', 7:'九', 8:'六', 6:'六'};
+    changingYaoHTML = `<div class="divider"></div>
+    <div class="changing-yao-section">
+      <div class="changing-yao-title">變爻・為下一步而占</div>`;
+    changingLines.forEach(lineIdx => {
+      const yaoEntry = h.yao[lineIdx];
+      if (!yaoEntry) return;
+      const typeChar = originalVals ? yaoTypes[originalVals[lineIdx]] || '九' : '九';
+      changingYaoHTML += `
+      <div class="yao-entry">
+        <div class="yao-ci">${yaoEntry.num}・${yaoEntry.ci}</div>
+        <div class="yao-baihua">${yaoEntry.baihua}</div>
+        <div class="yao-fields">`;
+      if (yaoEntry.situation) changingYaoHTML += `<div class="yao-field"><span class="yao-field-label">處境</span><span class="yao-field-val">${yaoEntry.situation}</span></div>`;
+      if (yaoEntry.tip)       changingYaoHTML += `<div class="yao-field"><span class="yao-field-label">提示</span><span class="yao-field-val">${yaoEntry.tip}</span></div>`;
+      if (yaoEntry.action)    changingYaoHTML += `<div class="yao-field"><span class="yao-field-label">建議</span><span class="yao-field-val action">${yaoEntry.action}</span></div>`;
+      if (yaoEntry.taboo)     changingYaoHTML += `<div class="yao-field"><span class="yao-field-label">忌諱</span><span class="yao-field-val taboo">${yaoEntry.taboo}</span></div>`;
+      if (yaoEntry.transition)changingYaoHTML += `<div class="yao-field"><span class="yao-field-label">轉折</span><span class="yao-field-val">${yaoEntry.transition}</span></div>`;
+      changingYaoHTML += `</div></div>`;
+    });
+    changingYaoHTML += '</div>';
+  }
+
+  return `
+  <div class="hex-card" style="animation-delay:${labelClass==='ben'?'0':(labelClass==='hu'?'.15':(labelClass==='zhi'?'.3':'.45'))}s">
+    <div class="hex-card-label ${labelClass}">${labelText}</div>
+    <div class="hex-top">
+      ${buildHexDiagram(hexData.isYang, hexData.isChanging)}
+      <div class="hex-info">
+        <div class="hex-symbol">${h.symbol}</div>
+        <div class="hex-name">${h.name}</div>
+        <div class="hex-trigrams">上：${h.upper} ／ 下：${h.lower}</div>
+        <div class="hex-guaci">${h.guaci}</div>
+        <div class="hex-baihua">${h.baihua}</div>
+      </div>
+    </div>
+    ${changingYaoHTML}
+  </div>`;
+}
+
+// ── Show results ──
+function showResults(vals) {
+  const calc = calcHexagrams(vals);
+  const area = document.getElementById('resultsArea');
+
+  const hasChanging = calc.changingLines.length > 0;
+
+  let html = '';
+  html += buildHexCard(calc.ben, '本卦・現在的處境', 'ben', calc.changingLines, vals);
+
+  if (hasChanging) {
+    // Transition: ben → zhi
+    const benH = ICHING_DATA[calc.ben.num];
+    const zhiH = ICHING_DATA[calc.zhi.num];
+    html += `<div class="transition-banner" style="animation:fade-up .5s .2s both;opacity:0;animation-fill-mode:forwards">
+      <strong>卦變：</strong>${benH ? benH.name : ''} → ${zhiH ? zhiH.name : ''}
+      ／ 有 ${calc.changingLines.length} 爻變動，本卦轉化為之卦，呈現未來走向
+    </div>`;
+  }
+
+  html += buildHexCard(calc.hu, '互卦・內在動力', 'hu', [], null);
+
+  if (hasChanging) {
+    html += buildHexCard(calc.zhi, '之卦・未來走向', 'zhi', [], null);
+  }
+
+  html += buildHexCard(calc.cuo, '錯卦・對立參照', 'cuo', [], null);
+
+  area.innerHTML = html;
+  area.style.display = 'flex';
+  document.getElementById('againBtn').style.display = 'block';
+
+  area.scrollIntoView({behavior: 'smooth', block: 'start'});
+
+  // Save to Firestore
+  saveReading(vals, calc);
+}
+
+// ── Save reading ──
+async function saveReading(vals, calc) {
+  if (!currentUser) return;
+  try {
+    const benH = ICHING_DATA[calc.ben.num];
+    await db.collection('iching_readings').add({
+      uid: currentUser.uid,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      vals,
+      benNum: calc.ben.num,
+      benName: benH ? benH.name : '',
+      zhiNum: calc.zhi.num,
+      huNum:  calc.hu.num,
+      cuoNum: calc.cuo.num,
+      changingLines: calc.changingLines,
+    });
+    await loadHistory();
+  } catch (e) {
+    console.error('Save reading error:', e);
+  }
+}
+
+// ── Load history ──
+async function loadHistory() {
+  if (!currentUser) return;
+  const area = document.getElementById('historyArea');
+  const list = document.getElementById('historyList');
+  area.classList.add('visible');
+  list.innerHTML = '<div class="history-empty">載入中…</div>';
+  try {
+    const snap = await db.collection('iching_readings')
+      .where('uid', '==', currentUser.uid)
+      .orderBy('createdAt', 'desc')
+      .limit(10)
+      .get();
+    if (snap.empty) {
+      list.innerHTML = '<div class="history-empty">尚無占卜記錄</div>';
+      return;
+    }
+    list.innerHTML = '';
+    snap.forEach(doc => {
+      const d = doc.data();
+      const date = d.createdAt ? new Date(d.createdAt.seconds * 1000).toLocaleString('zh-TW') : '';
+      const benH = ICHING_DATA[d.benNum];
+      const zhiH = ICHING_DATA[d.zhiNum];
+      const item = document.createElement('div');
+      item.className = 'history-item';
+      item.innerHTML = `
+        <div class="history-summary" onclick="this.closest('.history-item').classList.toggle('open')">
+          <div class="history-meta">
+            <div class="history-date">${date}</div>
+            <div class="history-preview">
+              ${benH ? benH.symbol + ' ' + benH.name : '—'}
+              ${d.changingLines && d.changingLines.length > 0 && zhiH ? ' → ' + zhiH.symbol + ' ' + zhiH.name : ''}
+            </div>
+          </div>
+          <span class="history-toggle">▾</span>
+        </div>
+        <div class="history-detail">
+          <div style="margin-top:12px;font-size:.82rem;color:var(--text-muted)">
+            本卦：${benH ? benH.name + '（' + benH.guaci + '）' : '—'}<br>
+            互卦：${ICHING_DATA[d.huNum] ? ICHING_DATA[d.huNum].name : '—'}<br>
+            ${d.changingLines && d.changingLines.length > 0 ? '之卦：' + (zhiH ? zhiH.name : '—') + '<br>' : ''}
+            錯卦：${ICHING_DATA[d.cuoNum] ? ICHING_DATA[d.cuoNum].name : '—'}<br>
+            變爻：${d.changingLines && d.changingLines.length > 0 ? d.changingLines.map(i => ['初','二','三','四','五','上'][i] + '爻').join('、') : '無'}
+          </div>
+        </div>`;
+      list.appendChild(item);
+    });
+  } catch (e) {
+    list.innerHTML = '<div class="history-empty">無法載入記錄</div>';
+    console.error(e);
+  }
+}
+
+// ── Reset ──
+function resetAll() {
+  // Reset coin rows
+  for (let row = 0; row < 6; row++) {
+    for (let c = 0; c < 3; c++) {
+      const el = document.getElementById(`c${row}-${c}`);
+      el.className = 'coin'; el.textContent = '🪙';
+    }
+    document.getElementById(`res-${row}`).textContent = '';
+    document.getElementById(`res-${row}`).className = 'row-result';
+  }
+  // Reset manual
+  for (let row = 0; row < 6; row++) {
+    manualValues[row] = null;
+    const btns = document.querySelectorAll(`#manualRows .manual-row:nth-child(${row+1}) .yao-btn`);
+    btns.forEach(btn => btn.className = 'yao-btn');
+    document.getElementById(`mld-${row}`).innerHTML = '';
+  }
+  document.getElementById('manualSubmit').disabled = true;
+
+  document.getElementById('resultsArea').style.display = 'none';
+  document.getElementById('resultsArea').innerHTML = '';
+  document.getElementById('againBtn').style.display = 'none';
+
+  window.scrollTo({top: 0, behavior: 'smooth'});
+}
+</script>
+</body>
+</html>
