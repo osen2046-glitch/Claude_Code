@@ -9,22 +9,14 @@ service cloud.firestore {
 
     // ── 公告欄 ──
     match /bulletins/{bulletinId} {
-      // 所有登入使用者可讀
       allow read: if request.auth != null;
-
-      // 建立：必須是本人，且包含必要欄位
       allow create: if request.auth != null
         && request.resource.data.authorId == request.auth.uid
         && request.resource.data.keys().hasAll(['title', 'content', 'category', 'authorId', 'authorName', 'createdAt']);
-
-      // 刪除：僅限作者本人
       allow delete: if request.auth != null
         && resource.data.authorId == request.auth.uid;
-
-      // 不允許編輯
       allow update: if false;
 
-      // ── 留言子集合 ──
       match /comments/{commentId} {
         allow read: if request.auth != null;
         allow create: if request.auth != null
@@ -34,6 +26,29 @@ service cloud.firestore {
           && resource.data.authorId == request.auth.uid;
         allow update: if false;
       }
+    }
+
+    // ── 解夢記錄：僅限本人讀寫 ──
+    match /dreams/{dreamId} {
+      allow read:   if request.auth != null && resource.data.uid == request.auth.uid;
+      allow create: if request.auth != null
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.keys().hasAll(['uid', 'dreamText', 'methods', 'results', 'createdAt']);
+      allow update, delete: if false;
+    }
+
+    // ── 神諭符文記錄（runes）：僅限本人讀寫 ──
+    match /runes/{docId} {
+      allow read, write: if request.auth != null && request.auth.uid == resource.data.uid;
+    }
+
+    // ── 神諭抽卡記錄：僅限本人讀寫 ──
+    match /rune_draws/{drawId} {
+      allow read:   if request.auth != null && resource.data.uid == request.auth.uid;
+      allow create: if request.auth != null
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.keys().hasAll(['uid', 'runeName', 'runeSymbol', 'oriented', 'label', 'createdAt']);
+      allow update, delete: if false;
     }
   }
 }

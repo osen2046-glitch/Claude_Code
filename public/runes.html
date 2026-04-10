@@ -92,6 +92,17 @@
       transition: color .2s;
     }
     .back-link:hover { color: var(--gold); }
+    .header-right {
+      margin-left: auto; display: flex; align-items: center;
+      gap: 8px; flex-wrap: wrap;
+    }
+    .nav-link {
+      text-decoration: none; font-size: .8rem; font-weight: 600;
+      color: var(--text-muted); padding: 4px 10px;
+      border-radius: 999px; border: 1px solid var(--border);
+      transition: color .2s, border-color .2s; white-space: nowrap;
+    }
+    .nav-link:hover { color: var(--silver); border-color: #4a5070; }
     header h1 {
       font-size: 1.15rem;
       font-weight: 700;
@@ -337,6 +348,79 @@
     }
     .again-btn:active { transform: scale(.97); }
 
+    /* ── User controls ── */
+    .user-name { font-size: .82rem; color: var(--text-muted); white-space: nowrap; }
+    .btn-hdr {
+      padding: 4px 11px; border-radius: 6px; border: 1px solid var(--border);
+      background: transparent; cursor: pointer; font-size: .8rem;
+      font-family: inherit; font-weight: 600; color: var(--text-muted);
+      transition: border-color .2s, color .2s; white-space: nowrap;
+    }
+    .btn-hdr:hover { border-color: #4a5070; color: var(--silver); }
+
+    /* ── History section ── */
+    .history-area { display: none; width: 100%; animation: fade-up .5s ease both; }
+    .history-area.visible { display: block; }
+    .history-heading {
+      font-size: .73rem; font-weight: 700;
+      color: var(--gold-dim); letter-spacing: .2em; text-transform: uppercase;
+      display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
+    }
+    .history-heading::after {
+      content: ''; flex: 1; height: 1px;
+      background: linear-gradient(90deg, var(--border), transparent);
+    }
+    .history-list { display: flex; flex-direction: column; gap: 10px; }
+    .history-item {
+      background: linear-gradient(160deg, #141728, #0d0f26);
+      border: 1px solid var(--border); border-radius: 14px; overflow: hidden;
+      transition: border-color .2s;
+    }
+    .history-item:hover { border-color: var(--gold-dim); }
+    .history-summary {
+      padding: 14px 18px; cursor: pointer;
+      display: flex; align-items: flex-start; gap: 12px;
+    }
+    .history-meta { flex: 1; min-width: 0; }
+    .history-date { font-size: .72rem; color: var(--text-muted); letter-spacing: .08em; margin-bottom: 5px; }
+    .history-preview {
+      font-size: .92rem; color: var(--silver);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .history-rune-symbol { font-size: 1.3rem; color: var(--gold); line-height: 1; }
+    .history-toggle {
+      font-size: .8rem; color: var(--text-muted);
+      flex-shrink: 0; margin-top: 2px; transition: transform .2s;
+    }
+    .history-item.open .history-toggle { transform: rotate(180deg); }
+    .history-detail {
+      display: none; padding: 0 18px 16px;
+      border-top: 1px solid rgba(42,45,74,.7);
+    }
+    .history-item.open .history-detail { display: block; }
+    .history-block { margin-top: 14px; }
+    .history-block-title {
+      font-size: .72rem; font-weight: 700; color: var(--gold-dim);
+      letter-spacing: .14em; text-transform: uppercase; margin-bottom: 6px;
+    }
+    .history-block-text { font-size: .84rem; color: var(--silver); line-height: 1.75; }
+    .history-block-text.action { color: var(--gold-light); }
+    .history-empty {
+      text-align: center; padding: 32px 20px;
+      color: var(--text-muted); font-size: .85rem; letter-spacing: .08em;
+    }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed; bottom: 28px; right: 28px;
+      background: #1a1d3a; color: var(--silver);
+      border: 1px solid var(--border);
+      padding: 10px 20px; border-radius: 10px;
+      font-size: .85rem; opacity: 0;
+      transition: opacity .3s; pointer-events: none; z-index: 999;
+    }
+    .toast.show { opacity: 1; }
+
     /* ── Responsive ── */
     @media (max-width: 480px) {
       .rune-symbol { font-size: 5.5rem; }
@@ -350,8 +434,18 @@
 <div class="stars" id="stars"></div>
 
 <header>
-  <a class="back-link" href="/">← 文章收藏</a>
   <h1>ᚱ 盧恩符文神諭</h1>
+  <div class="header-right">
+    <a class="nav-link" href="/index.html">📰 文章收藏</a>
+    <a class="nav-link" href="/bulletin.html">📢 公告欄</a>
+    <a class="nav-link" href="/runes.html">🔮 神諭</a>
+    <a class="nav-link" href="/dream.html">🌙 解夢</a>
+    <a class="nav-link" href="/rainbow.html">🌈 彩虹卡</a>
+    <a class="nav-link" href="/morning.html">🌅 晨間儀式</a>
+    <span class="user-name" id="headerUserName"></span>
+    <button class="btn-hdr" onclick="location.href='/settings.html'">設定</button>
+    <button class="btn-hdr" onclick="logout()">登出</button>
+  </div>
 </header>
 
 <div class="main">
@@ -373,8 +467,21 @@
   <!-- Card area -->
   <div class="card-area" id="cardArea"></div>
 
+  <!-- History (auth only) -->
+  <div class="history-area" id="historyArea">
+    <div class="history-heading">抽卡歷程記錄</div>
+    <div class="history-list" id="historyList">
+      <div class="history-empty">載入中…</div>
+    </div>
+  </div>
+
 </div>
 
+<div class="toast" id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script>
 const RUNES = [
   {
@@ -619,6 +726,144 @@ const RUNES = [
   }
 ];
 
+// ── Firebase init ──
+const firebaseConfig = {
+  apiKey: "AIzaSyDEWMEv-0vMixLtjPx2ZPiUzHgtW7cg1ug",
+  authDomain: "oz-workspace.firebaseapp.com",
+  projectId: "oz-workspace",
+  storageBucket: "oz-workspace.firebasestorage.app",
+  messagingSenderId: "128483648899",
+  appId: "1:128483648899:web:56b21e29cd2c677f7002b6"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db   = firebase.firestore();
+
+if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+  db.useEmulator('localhost', 8080);
+}
+
+let currentUser = null;
+
+// ── Auth ──
+auth.onAuthStateChanged(user => {
+  currentUser = user;
+  if (user) {
+    document.getElementById('headerUserName').textContent = user.displayName || user.email;
+    document.getElementById('historyArea').classList.add('visible');
+    loadHistory();
+  }
+});
+
+async function logout() {
+  await auth.signOut();
+  window.location.replace('/login.html');
+}
+
+// ── Save rune draw ──
+async function saveRune(rune, oriented, label, core, insight, action) {
+  if (!currentUser) return;
+  try {
+    await db.collection('rune_draws').add({
+      uid:         currentUser.uid,
+      runeName:    rune.name,
+      runeZh:      rune.zh,
+      runeSymbol:  rune.symbol,
+      runeNum:     rune.num,
+      oriented,
+      label,
+      core,
+      insight,
+      action,
+      createdAt:   firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    await loadHistory();
+  } catch(e) {
+    console.warn('Failed to save rune draw:', e);
+  }
+}
+
+// ── Load history ──
+async function loadHistory() {
+  if (!currentUser) return;
+  const listEl = document.getElementById('historyList');
+  try {
+    const snap = await db.collection('rune_draws')
+      .where('uid', '==', currentUser.uid)
+      .orderBy('createdAt', 'desc')
+      .limit(20)
+      .get();
+
+    if (snap.empty) {
+      listEl.innerHTML = '<div class="history-empty">尚無記錄，完成第一次占卜後將自動儲存</div>';
+      return;
+    }
+
+    const draws = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    listEl.innerHTML = draws.map(renderHistoryItem).join('');
+  } catch(e) {
+    listEl.innerHTML = '<div class="history-empty">無法載入記錄</div>';
+    console.warn('History load error:', e);
+  }
+}
+
+// ── Render history item ──
+function renderHistoryItem(d) {
+  const date = d.createdAt?.toDate?.()
+    ? d.createdAt.toDate().toLocaleString('zh-TW', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' })
+    : '—';
+  const badge = d.oriented ? 'reversed' : 'upright';
+
+  return `
+  <div class="history-item" id="hi-${d.id}">
+    <div class="history-summary" onclick="toggleHistoryItem('${d.id}')">
+      <div class="history-meta">
+        <div class="history-date">${date}</div>
+        <div class="history-preview">
+          <span class="history-rune-symbol">${escHtml(d.runeSymbol || '')}</span>
+          <span>${escHtml(d.runeName || '')} · ${escHtml(d.runeZh || '')}</span>
+        </div>
+        <div style="margin-top:6px">
+          <span class="orientation-badge ${badge}" style="font-size:.68rem;padding:2px 8px">${escHtml(d.label || '')}</span>
+        </div>
+      </div>
+      <span class="history-toggle">▾</span>
+    </div>
+    <div class="history-detail">
+      <div class="history-block">
+        <div class="history-block-title">核心意涵</div>
+        <div class="history-block-text">${escHtml(d.core || '')}</div>
+      </div>
+      <div class="history-block">
+        <div class="history-block-title">對你問題的啟示</div>
+        <div class="history-block-text">${escHtml(d.insight || '')}</div>
+      </div>
+      <div class="history-block">
+        <div class="history-block-title">行動建議</div>
+        <div class="history-block-text action">${escHtml(d.action || '')}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function toggleHistoryItem(id) {
+  document.getElementById(`hi-${id}`)?.classList.toggle('open');
+}
+
+function escHtml(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+let _toastTimer;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+}
+
 function generateStars() {
   const container = document.getElementById('stars');
   for (let i = 0; i < 120; i++) {
@@ -695,6 +940,9 @@ function drawCard() {
 
   // Smooth scroll to card
   setTimeout(() => area.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
+
+  // Save to Firestore (logged-in users only)
+  if (currentUser) saveRune(rune, oriented, label, core, insight, action);
 }
 
 generateStars();

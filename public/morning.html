@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🌅 晨間儀式</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #07081a;
+      --bg2:       #0c0e24;
+      --surface:   #111328;
+      --border:    #2a2d4a;
+      --gold:      #D4A84B;
+      --gold-light:#F0CF82;
+      --gold-dim:  #8a6a28;
+      --amber:     #E8956D;
+      --amber-dim: #9a5a3a;
+      --text:      #e8dfd0;
+      --text-muted:#7a7898;
+      --silver:    #b0b8cc;
+      --glow:      rgba(212,168,75,.3);
+      --glow-amber:rgba(232,149,109,.3);
+    }
+
+    @keyframes fade-up {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes shimmer {
+      0%   { background-position: -200% center; }
+      100% { background-position:  200% center; }
+    }
+    @keyframes star-twinkle {
+      0%,100% { opacity: .15; }
+      50%      { opacity: .9; }
+    }
+    @keyframes dawn-glow {
+      0%,100% { opacity: .25; }
+      50%      { opacity: .5; }
+    }
+    @keyframes flip-in {
+      0%   { transform: rotateY(90deg) scale(.88); opacity: 0; }
+      65%  { transform: rotateY(-5deg) scale(1.02); opacity: 1; }
+      100% { transform: rotateY(0deg) scale(1); }
+    }
+    @keyframes burst {
+      0%   { transform: scale(1); opacity: 1; box-shadow: 0 0 0 0 rgba(212,168,75,.7); }
+      70%  { transform: scale(1.04); opacity: .9; box-shadow: 0 0 0 40px rgba(212,168,75,0); }
+      100% { transform: scale(1); opacity: 1; box-shadow: 0 0 0 0 rgba(212,168,75,0); }
+    }
+    @keyframes check-pop {
+      0%   { transform: scale(0); }
+      70%  { transform: scale(1.3); }
+      100% { transform: scale(1); }
+    }
+
+    body {
+      font-family: 'Segoe UI', 'PingFang TC', 'Microsoft JhengHei', 'Noto Serif TC', serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Dawn atmosphere ── */
+    .dawn-bg {
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background: radial-gradient(ellipse 80% 40% at 50% 100%,
+        rgba(212,168,75,.07) 0%, transparent 70%);
+      animation: dawn-glow 8s ease-in-out infinite;
+    }
+    .stars { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+    .star {
+      position: absolute; width: 2px; height: 2px;
+      background: #fff; border-radius: 50%;
+      animation: star-twinkle var(--dur,3s) ease-in-out infinite;
+      animation-delay: var(--delay,0s);
+    }
+
+    /* ── Header ── */
+    header {
+      position: sticky; top: 0; z-index: 100;
+      background: linear-gradient(180deg, rgba(7,8,26,.98), rgba(7,8,26,.9));
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+      display: flex; align-items: center; gap: 14px;
+      backdrop-filter: blur(12px);
+    }
+    header h1 {
+      font-size: 1.1rem; font-weight: 700;
+      background: linear-gradient(135deg, var(--gold-light), var(--gold), var(--amber));
+      background-size: 200% auto;
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: shimmer 5s linear infinite;
+      letter-spacing: .1em; white-space: nowrap;
+    }
+    .header-right {
+      margin-left: auto; display: flex; align-items: center;
+      gap: 8px; flex-wrap: wrap;
+    }
+    .nav-link {
+      text-decoration: none; font-size: .8rem; font-weight: 600;
+      color: var(--text-muted); padding: 4px 10px;
+      border-radius: 999px; border: 1px solid var(--border);
+      transition: color .2s, border-color .2s; white-space: nowrap;
+    }
+    .nav-link:hover { color: var(--silver); border-color: #4a5070; }
+    .user-name { font-size: .82rem; color: var(--text-muted); white-space: nowrap; }
+    .btn-hdr {
+      padding: 4px 11px; border-radius: 6px; border: 1px solid var(--border);
+      background: transparent; cursor: pointer; font-size: .8rem;
+      font-family: inherit; font-weight: 600; color: var(--text-muted);
+      transition: border-color .2s, color .2s; white-space: nowrap;
+    }
+    .btn-hdr:hover { border-color: #4a5070; color: var(--silver); }
+
+    /* ── Main ── */
+    .main {
+      position: relative; z-index: 1;
+      max-width: 680px; margin: 0 auto;
+      padding: 36px 20px 80px;
+      display: flex; flex-direction: column;
+      gap: 24px;
+    }
+
+    /* ── Section card base ── */
+    .section-card {
+      background: linear-gradient(160deg, #141728 0%, #0d0f24 100%);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 26px 28px;
+      animation: fade-up .55s ease both;
+    }
+    .section-title {
+      font-size: .72rem; font-weight: 700;
+      color: var(--gold-dim); letter-spacing: .22em;
+      text-transform: uppercase;
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 18px;
+    }
+    .section-title::after {
+      content: ''; flex: 1; height: 1px;
+      background: linear-gradient(90deg, var(--border), transparent);
+    }
+
+    /* ── Greeting card ── */
+    .greeting-card {
+      background: linear-gradient(135deg, #141728, #0e1030);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 28px 32px;
+      text-align: center;
+      animation: fade-up .5s ease both;
+    }
+    .greeting-text {
+      font-size: 1.6rem; font-weight: 700;
+      background: linear-gradient(135deg, var(--gold-light), var(--gold), var(--amber));
+      background-size: 200% auto;
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: shimmer 5s linear infinite;
+      letter-spacing: .08em; margin-bottom: 8px;
+    }
+    .greeting-date {
+      font-size: 1rem; color: var(--silver);
+      letter-spacing: .1em; margin-bottom: 6px;
+    }
+    .greeting-clock {
+      font-size: 2rem; font-weight: 300;
+      color: var(--gold); letter-spacing: .12em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ── Daily rune ── */
+    .rune-card {
+      animation-delay: .06s;
+    }
+    .rune-display {
+      display: flex; align-items: center; gap: 20px;
+    }
+    .rune-symbol-big {
+      font-size: 4.5rem; line-height: 1;
+      color: var(--gold-light);
+      text-shadow: 0 0 24px var(--glow), 0 0 48px var(--glow);
+      flex-shrink: 0;
+    }
+    .rune-info { flex: 1; }
+    .rune-name-row {
+      display: flex; align-items: baseline; gap: 10px;
+      margin-bottom: 6px; flex-wrap: wrap;
+    }
+    .rune-name-en {
+      font-size: 1.15rem; font-weight: 700;
+      color: var(--gold); letter-spacing: .1em;
+    }
+    .rune-name-zh {
+      font-size: .88rem; color: var(--silver); letter-spacing: .12em;
+    }
+    .rune-core-short {
+      font-size: .9rem; color: var(--text-muted);
+      line-height: 1.65; letter-spacing: .04em;
+    }
+    .reveal-btn {
+      margin-top: 14px;
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 18px;
+      border-radius: 999px;
+      border: 1px solid var(--gold-dim);
+      background: transparent;
+      color: var(--gold-dim); font-size: .8rem; font-weight: 600;
+      letter-spacing: .1em; cursor: pointer;
+      font-family: inherit;
+      transition: color .2s, border-color .2s;
+    }
+    .reveal-btn:hover { color: var(--gold); border-color: var(--gold); }
+    .rune-detail {
+      display: none; margin-top: 18px;
+      padding-top: 18px;
+      border-top: 1px solid rgba(42,45,74,.7);
+      animation: fade-up .35s ease both;
+    }
+    .rune-detail.open { display: block; }
+    .detail-block { margin-bottom: 14px; }
+    .detail-label {
+      font-size: .72rem; font-weight: 700; color: var(--gold-dim);
+      letter-spacing: .18em; text-transform: uppercase; margin-bottom: 5px;
+    }
+    .detail-text {
+      font-size: .9rem; color: var(--text); line-height: 1.8; letter-spacing: .04em;
+    }
+    .detail-text.action { color: var(--gold-light); }
+
+    /* ── Intention ── */
+    .intention-card { animation-delay: .12s; }
+    .intention-input {
+      width: 100%; background: rgba(255,255,255,.03);
+      border: 1px solid var(--border);
+      border-radius: 10px; padding: 13px 16px;
+      color: var(--text); font-size: 1rem;
+      font-family: inherit; letter-spacing: .05em;
+      outline: none; transition: border-color .2s, box-shadow .2s;
+    }
+    .intention-input:focus {
+      border-color: var(--gold-dim);
+      box-shadow: 0 0 0 3px rgba(212,168,75,.1);
+    }
+    .intention-input::placeholder { color: var(--text-muted); }
+    .intention-saved {
+      display: none; cursor: pointer;
+      padding: 14px 18px;
+      background: rgba(212,168,75,.06);
+      border: 1px solid rgba(212,168,75,.2);
+      border-radius: 10px;
+      transition: border-color .2s;
+    }
+    .intention-saved:hover { border-color: rgba(212,168,75,.4); }
+    .intention-saved.visible { display: block; }
+    .intention-saved-text {
+      font-size: 1.05rem; color: var(--gold-light);
+      letter-spacing: .06em; line-height: 1.7; font-style: italic;
+    }
+    .intention-saved-hint {
+      font-size: .72rem; color: var(--text-muted);
+      letter-spacing: .08em; margin-top: 5px;
+    }
+
+    /* ── Tasks ── */
+    .tasks-card { animation-delay: .18s; }
+    .task-list { display: flex; flex-direction: column; gap: 10px; }
+    .task-item {
+      display: flex; align-items: center; gap: 12px;
+    }
+    .task-checkbox {
+      width: 22px; height: 22px; flex-shrink: 0;
+      border-radius: 6px; border: 2px solid var(--border);
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: background .2s, border-color .2s;
+      background: transparent;
+    }
+    .task-checkbox.done {
+      background: var(--gold);
+      border-color: var(--gold);
+    }
+    .task-checkbox.done::after {
+      content: '✓';
+      color: var(--bg);
+      font-size: .85rem; font-weight: 800;
+      animation: check-pop .25s ease both;
+    }
+    .task-input {
+      flex: 1; background: rgba(255,255,255,.03);
+      border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px 14px;
+      color: var(--text); font-size: .95rem;
+      font-family: inherit; letter-spacing: .04em;
+      outline: none; transition: border-color .2s, color .2s;
+    }
+    .task-input:focus { border-color: var(--gold-dim); }
+    .task-input.done {
+      text-decoration: line-through;
+      color: var(--text-muted);
+    }
+    .task-input::placeholder { color: var(--text-muted); }
+
+    /* ── Chakra energy ── */
+    .chakra-card { animation-delay: .24s; }
+    .chakra-energy-wrap {
+      display: flex; align-items: flex-start; gap: 14px;
+    }
+    .chakra-color-bar {
+      width: 5px; min-height: 70px; flex-shrink: 0;
+      border-radius: 3px;
+    }
+    .chakra-energy-content { flex: 1; }
+    .chakra-name-row {
+      display: flex; align-items: baseline; gap: 10px;
+      margin-bottom: 8px;
+    }
+    .chakra-name-big {
+      font-size: 1.05rem; font-weight: 700; letter-spacing: .12em;
+    }
+    .chakra-keywords-sm {
+      font-size: .75rem; color: var(--text-muted); letter-spacing: .06em;
+    }
+    .chakra-affirmation {
+      font-size: 1.08rem; font-style: italic;
+      line-height: 1.8; letter-spacing: .06em; color: #eee8da;
+    }
+
+    /* ── Start button ── */
+    .start-wrap {
+      display: flex; flex-direction: column;
+      align-items: center; gap: 12px;
+      animation: fade-up .55s .3s ease both;
+    }
+    .start-btn {
+      padding: 16px 56px;
+      border-radius: 999px;
+      border: 2px solid var(--gold);
+      background: radial-gradient(ellipse at center, rgba(212,168,75,.15) 0%, transparent 70%);
+      color: var(--gold-light);
+      font-size: 1.05rem; font-weight: 700;
+      letter-spacing: .14em; cursor: pointer;
+      font-family: inherit;
+      transition: background .25s, box-shadow .25s, border-color .25s;
+      box-shadow: 0 0 24px var(--glow);
+    }
+    .start-btn:hover {
+      background: radial-gradient(ellipse at center, rgba(212,168,75,.28) 0%, transparent 70%);
+      box-shadow: 0 0 48px var(--glow), 0 0 80px rgba(212,168,75,.15);
+      border-color: var(--gold-light);
+    }
+    .start-btn:active { transform: scale(.97); }
+    .start-btn.fired { animation: burst .6s ease forwards; }
+
+    /* ── Streak ── */
+    .streak-text {
+      font-size: .8rem; color: var(--text-muted);
+      letter-spacing: .1em; text-align: center;
+    }
+    .streak-num {
+      color: var(--amber); font-weight: 700;
+    }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed; bottom: 28px; right: 28px;
+      background: #1a1d3a; color: var(--silver);
+      border: 1px solid var(--border);
+      padding: 10px 20px; border-radius: 10px;
+      font-size: .85rem; opacity: 0;
+      transition: opacity .3s; pointer-events: none; z-index: 999;
+    }
+    .toast.show { opacity: 1; }
+
+    /* ── Responsive ── */
+    @media (max-width: 500px) {
+      .greeting-text { font-size: 1.3rem; }
+      .greeting-clock { font-size: 1.6rem; }
+      .rune-symbol-big { font-size: 3.5rem; }
+      .section-card { padding: 20px 18px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="dawn-bg"></div>
+<div class="stars" id="stars"></div>
+
+<header>
+  <h1>🌅 晨間儀式</h1>
+  <div class="header-right">
+    <a class="nav-link" href="/index.html">📰 文章收藏</a>
+    <a class="nav-link" href="/bulletin.html">📢 公告欄</a>
+    <a class="nav-link" href="/runes.html">🔮 神諭</a>
+    <a class="nav-link" href="/dream.html">🌙 解夢</a>
+    <a class="nav-link" href="/rainbow.html">🌈 彩虹卡</a>
+    <a class="nav-link" href="/morning.html">🌅 晨間儀式</a>
+    <span class="user-name" id="headerUserName"></span>
+    <button class="btn-hdr" onclick="location.href='/settings.html'">設定</button>
+    <button class="btn-hdr" onclick="logout()">登出</button>
+  </div>
+</header>
+
+<div class="main">
+
+  <!-- Greeting -->
+  <div class="greeting-card">
+    <div class="greeting-text" id="greetingText">早安</div>
+    <div class="greeting-date" id="greetingDate"></div>
+    <div class="greeting-clock" id="greetingClock"></div>
+  </div>
+
+  <!-- Daily rune -->
+  <div class="section-card rune-card">
+    <div class="section-title">☀ 今日神諭</div>
+    <div class="rune-display">
+      <div class="rune-symbol-big" id="runeSymbol"></div>
+      <div class="rune-info">
+        <div class="rune-name-row">
+          <span class="rune-name-en" id="runeName"></span>
+          <span class="rune-name-zh" id="runeZh"></span>
+        </div>
+        <div class="rune-core-short" id="runeCore"></div>
+        <button class="reveal-btn" id="revealBtn" onclick="toggleRuneDetail()">
+          <span id="revealBtnText">展開今日啟示 ▾</span>
+        </button>
+      </div>
+    </div>
+    <div class="rune-detail" id="runeDetail">
+      <div class="detail-block">
+        <div class="detail-label">洞見</div>
+        <div class="detail-text" id="runeInsight"></div>
+      </div>
+      <div class="detail-block">
+        <div class="detail-label">行動指引</div>
+        <div class="detail-text action" id="runeAction"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Intention -->
+  <div class="section-card intention-card">
+    <div class="section-title">✍️ 今日意圖</div>
+    <input
+      type="text" class="intention-input" id="intentionInput"
+      placeholder="今天，我選擇⋯⋯"
+      maxlength="80"
+    />
+    <div class="intention-saved" id="intentionSaved" onclick="editIntention()">
+      <div class="intention-saved-text" id="intentionSavedText"></div>
+      <div class="intention-saved-hint">點擊修改</div>
+    </div>
+  </div>
+
+  <!-- Tasks -->
+  <div class="section-card tasks-card">
+    <div class="section-title">✅ 今日最重要的三件事</div>
+    <div class="task-list" id="taskList"></div>
+  </div>
+
+  <!-- Chakra energy -->
+  <div class="section-card chakra-card">
+    <div class="section-title">🌈 今日脈輪能量</div>
+    <div class="chakra-energy-wrap">
+      <div class="chakra-color-bar" id="chakraBar"></div>
+      <div class="chakra-energy-content">
+        <div class="chakra-name-row">
+          <span class="chakra-name-big" id="chakraName"></span>
+          <span class="chakra-keywords-sm" id="chakraKeywords"></span>
+        </div>
+        <div class="chakra-affirmation" id="chakraAffirmation"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Start button -->
+  <div class="start-wrap">
+    <button class="start-btn" id="startBtn" onclick="startDay()">🌅 開始美好的一天</button>
+    <div class="streak-text" id="streakText"></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="/js/dream-data.js"></script>
+<script>
+// ── Firebase ──
+const firebaseConfig = {
+  apiKey: "AIzaSyDEWMEv-0vMixLtjPx2ZPiUzHgtW7cg1ug",
+  authDomain: "oz-workspace.firebaseapp.com",
+  projectId: "oz-workspace",
+  storageBucket: "oz-workspace.firebasestorage.app",
+  messagingSenderId: "128483648899",
+  appId: "1:128483648899:web:56b21e29cd2c677f7002b6"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+
+let currentUserName = '';
+auth.onAuthStateChanged(user => {
+  if (user) {
+    currentUserName = user.displayName || user.email || '';
+    document.getElementById('headerUserName').textContent = currentUserName;
+    document.getElementById('greetingText').textContent = '早安，' + currentUserName;
+  }
+});
+function logout() {
+  auth.signOut().then(() => location.href = '/login.html');
+}
+
+// ── Starfield ──
+(function() {
+  const c = document.getElementById('stars');
+  for (let i = 0; i < 70; i++) {
+    const s = document.createElement('div');
+    s.className = 'star';
+    s.style.cssText = `left:${Math.random()*100}%;top:${Math.random()*100}%;--dur:${2+Math.random()*5}s;--delay:${Math.random()*6}s`;
+    c.appendChild(s);
+  }
+})();
+
+// ── RUNES data ──
+const RUNES = [
+  { symbol:'ᚠ', name:'Fehu',     zh:'費胡・財富',   core:'費胡象徵流動的財富與繁榮，代表原始的生命力量，以及透過努力所換來的豐盛成果。', insight:'豐盛的契機已悄然靠近，關鍵在於你是否準備好敞開雙手去接納。', action:'積極管理你的資源——無論是金錢、時間還是精力。分享你所擁有的，流動的能量才能帶來更大的回報。' },
+  { symbol:'ᚢ', name:'Uruz',     zh:'烏魯茲・原力', core:'烏魯茲象徵原始的野牛之力，代表蠻荒的力量、健康與生命力。', insight:'你內在有一股強大的力量尚未完全釋放，宇宙鼓勵你信任自己的直覺與體能，勇敢面對挑戰。', action:'鍛鍊身體，照顧健康，讓自己保持在最佳狀態。勇氣與耐力是現在最需要的資糧。' },
+  { symbol:'ᚦ', name:'Thurisaz', zh:'瑟里薩茲・荊棘',core:'瑟里薩茲是雷神索爾之鎚，象徵守護、衝突與考驗。它是一道尖銳的荊棘，也是保護自我的武器。', insight:'你正面臨或即將面臨一場考驗，這是宇宙為你量身打造的淬鍊，通過之後你將更為強大。', action:'不要逃避衝突，以清醒的頭腦分析障礙，然後果斷出擊。你的邊界需要被清楚建立與守護。' },
+  { symbol:'ᚨ', name:'Ansuz',    zh:'安蘇茲・神諭', core:'安蘇茲是奧丁的符文，代表神聖的訊息、語言與智慧。它象徵靈感的降臨與溝通的力量。', insight:'宇宙正透過各種徵兆與你說話。留意夢境、巧合與突如其來的靈感——那都是給你的訊息。', action:'傾聽，而非只是說話。在溝通中尋求真理，允許智慧透過你流動。' },
+  { symbol:'ᚱ', name:'Raidho',   zh:'萊多・旅程',   core:'萊多是旅途與節奏的符文，代表前進中的動力、正確的方向與宇宙的秩序。', insight:'你的人生正處於一個移動與變化的階段，無論是外在的旅行還是內在的心靈旅程，都是你成長的道路。', action:'信任旅途的過程。制定計劃，但也保持靈活。每一步都有其意義，即便暫時看不清終點。' },
+  { symbol:'ᚲ', name:'Kenaz',    zh:'肯那茲・火炬', core:'肯那茲是火炬與啟示的符文，象徵知識、創造力與照亮黑暗的光芒。', insight:'你內在的創造之火正等待被點燃，此刻是啟動新計劃、學習新技能或分享知識的絕佳時機。', action:'讓你的創造力自由流動。學習、創作、教導他人——將你的知識化為照亮世界的火炬。' },
+  { symbol:'ᚷ', name:'Gebo',     zh:'蓋波・贈禮',   core:'蓋波是禮物與交換的符文，象徵慷慨、夥伴關係與平衡的給予和接受。', insight:'一份珍貴的禮物正在向你靠近，它可能是一段關係、一個機會或一次命中注定的相遇。', action:'學習優雅地給予，也學習優雅地接受。在關係中尋求平衡，不要只付出或只索取。' },
+  { symbol:'ᚹ', name:'Wunjo',    zh:'溫約・喜悅',   core:'溫約是喜悅與幸福的符文，象徵和諧、滿足與心靈的平靜。', insight:'喜悅並不遙遠。你所追求的和諧與幸福，已在你的掌握之中，只需放下對完美的執著。', action:'感恩此刻所擁有的。分享你的喜悅，讓正向的能量吸引更多美好的事物進入你的生命。' },
+  { symbol:'ᚺ', name:'Hagalaz',  zh:'哈加拉茲・冰雹',core:'哈加拉茲代表突然的干擾、不可控的變化，以及打破舊有格局的能量。', insight:'某些無法預期的改變正在降臨。這場「冰雹」將摧毀不再適合你的事物，為新生創造空間。', action:'放下對掌控的執念，學習在混亂中保持內心的平靜。破壞之後必有重建，信任這個過程。' },
+  { symbol:'ᚾ', name:'Nauthiz',  zh:'諾蒂茲・需求', core:'諾蒂茲是需求與必要性的符文，象徵在匱乏中磨練出的智慧與耐力。', insight:'你正在學習辨別真正的需求與不必要的欲望之間的差異。', action:'接受限制的存在，在有限的條件下發揮創意。耐心等待，同時做好準備，機會來臨時你將不再錯過。' },
+  { symbol:'ᛁ', name:'Isa',      zh:'伊薩・冰',     core:'伊薩是冰與靜止的符文，象徵暫停、凍結與等待。它是一段必要的沉寂，讓一切重新歸於清明。', insight:'現在不是推進的時機，而是靜止與等待的時機。表面之下仍有流動，但須等待春天。', action:'停下來，反思，冥想。讓自己進入靜止的狀態，讓混亂沉澱，讓清晰自然浮現。' },
+  { symbol:'ᛃ', name:'Jera',     zh:'耶拉・豐收',   core:'耶拉是一年四季循環與豐收的符文，象徵努力後的成果、自然的節律與因果的圓滿。', insight:'你之前所播下的種子，正在以最合適的速度成長。宇宙的時機是完美的，豐收將在適當的季節來臨。', action:'繼續耕耘，保持耐心。不要因為看不到立即的結果而放棄——每個季節都有其任務。' },
+  { symbol:'ᛇ', name:'Eihwaz',   zh:'埃伊哈茲・紫杉',core:'埃伊哈茲象徵生死的連結、耐力與深刻的轉化。它是通往內在力量的通道。', insight:'你正站在一個重要的轉化時刻。就像紫杉樹同時象徵死亡與重生，此刻的結束預示著更偉大的開始。', action:'面對你內心最深的恐懼，那裡隱藏著你最大的力量。接受轉化的過程，不要半途而廢。' },
+  { symbol:'ᛈ', name:'Perthro',  zh:'佩爾索・命運', core:'佩爾索是命運、神秘與隱藏知識的符文，象徵不可知的命運之輪，以及靈魂深處的祕密。', insight:'某些超越你掌控的神秘力量正在作用。此刻是深入探索自我、揭示隱藏真相的好時機。', action:'信任你的直覺，探索你的內在世界。日記、占卜或冥想都能幫助你連接更深層的智慧。' },
+  { symbol:'ᛉ', name:'Algiz',    zh:'阿爾吉茲・保護',core:'阿爾吉茲象徵神聖的守護、本能的防禦與靈性的連結。它是宇宙的庇護。', insight:'你受到神靈或宇宙力量的庇護。信任你的直覺，它正在保護你遠離傷害，引導你走向安全的道路。', action:'建立並維護你的精神防護，無論是透過冥想、祈禱或與大自然的連結。信任你的本能警覺。' },
+  { symbol:'ᛊ', name:'Sowilo',   zh:'索威羅・太陽', core:'索威羅是太陽與勝利的符文，象徵光明、成功、意志力與靈魂的光輝。它是驅散黑暗的永恆之光。', insight:'你的道路是光明的。此刻宇宙賜予你強大的能量與清晰的方向，勝利與成功唾手可得。', action:'充滿信心地前進，讓你的光芒照耀他人。此刻是採取行動、展示你才能的最佳時機。' },
+  { symbol:'ᛏ', name:'Tiwaz',    zh:'提瓦茲・正義', core:'提瓦茲象徵正義、榮耀、犧牲與不屈的意志。他為了更大的善而甘願犧牲。', insight:'你正面臨一個需要勇氣與正直的考驗。做正確的事，即便那意味著必要的犧牲，最終的勝利是你的。', action:'為你相信的事物挺身而出。以正義與誠信行事，不要因為恐懼或私利而妥協你的原則。' },
+  { symbol:'ᛒ', name:'Berkano',  zh:'貝爾卡諾・樺樹',core:'貝爾卡諾象徵新生、孕育、療癒與母性的滋養。它是春天回歸時最先發芽的樹。', insight:'新的開始正在萌芽。無論是新的關係、新的計劃還是內在的療癒，滋養的能量正向你湧來。', action:'照顧好自己的身心，也滋養你的創造計劃。就像照料幼苗一樣，給予耐心與溫柔的關注。' },
+  { symbol:'ᛖ', name:'Ehwaz',    zh:'埃哈茲・駿馬', core:'埃哈茲象徵忠誠的夥伴關係、和諧的移動與信任的連結。好馬識好主，主賞識馬。', insight:'你的進展取決於你與他人之間的和諧。信任你的夥伴，協力前進。', action:'建立基於信任的關係，無論是工作夥伴、人生伴侶還是你與自己身體的關係。協作是成功的關鍵。' },
+  { symbol:'ᛗ', name:'Mannaz',   zh:'曼納茲・人類', core:'曼納茲是人類本質的符文，象徵自我意識、理性智慧與人類的相互依存。', insight:'此刻的課題關乎你如何看待自己，以及如何在人際關係中體現你的本質。自知者智。', action:'深刻地認識自己，包括你的優點與陰影。與他人真誠連結，在社群中找到你的位置與貢獻。' },
+  { symbol:'ᛚ', name:'Laguz',    zh:'拉古茲・水流', core:'拉古茲象徵直覺、潛意識的流動、情感的深度與生命力量的循環。水善利萬物而不爭。', insight:'你的直覺此刻非常強烈。深入你的情感世界，讓潛意識的智慧浮現，引導你做出正確的選擇。', action:'信任你的直覺感受，不要過度用頭腦分析。讓情感自然流動，如水一般找到它自己的路徑。' },
+  { symbol:'ᛜ', name:'Ingwaz',   zh:'英瓦茲・豐饒神',core:'英瓦茲象徵內在的孕育、完成的週期與充滿希望的潛力。種子在黑暗中等待。', insight:'你內在正在孕育一個重要的計劃或轉變。此刻需要的是耐心與保護，不要過早將它暴露在外。', action:'給你的夢想和計劃一個安全孕育的空間。當時機成熟，它將以最美麗的形式誕生。' },
+  { symbol:'ᛞ', name:'Dagaz',    zh:'達嘎茲・黎明', core:'達嘎茲是黎明與轉化時刻的符文，象徵突破、頓悟與晝夜交替之間的神聖時刻。黑暗即將散去。', insight:'你正站在一個重大突破的邊緣。就如同黎明前的最深黑暗，轉機即將到來，充滿希望與新生的能量。', action:'保持開放與期待，為即將到來的轉化做好準備。此刻是舊與新交替的神聖時刻，敞開心胸迎接它。' },
+  { symbol:'ᛟ', name:'Othala',   zh:'奧薩拉・傳承', core:'奧薩拉是祖先遺產與神聖土地的符文，象徵家族傳承、根基、精神遺產與屬於自己的家園。', insight:'你的根基與來處給予你力量。此刻可以從家族智慧或文化傳統中汲取養分，找到屬於自己的立足之地。', action:'珍視你的根源與傳承，同時也創造屬於自己的遺產。了解你從哪裡來，才能清楚地走向哪裡去。' }
+];
+
+// ── Chakra day mapping (Mon=0...Sun=6) ──
+const DAY_CHAKRA = ['root','sacral','solar','heart','throat','third_eye','crown'];
+
+// ── Date helpers ──
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function dateToday() { return new Date(); }
+
+// ── Clock & date ──
+const WEEK_ZH = ['週日','週一','週二','週三','週四','週五','週六'];
+const MONTH_ZH = ['一','二','三','四','五','六','七','八','九','十','十一','十二'];
+
+function updateClock() {
+  const now = new Date();
+  const h = String(now.getHours()).padStart(2,'0');
+  const m = String(now.getMinutes()).padStart(2,'0');
+  const s = String(now.getSeconds()).padStart(2,'0');
+  document.getElementById('greetingClock').textContent = `${h}:${m}:${s}`;
+}
+
+function setDate() {
+  const now = new Date();
+  const yr = now.getFullYear();
+  const mo = now.getMonth() + 1;
+  const dy = now.getDate();
+  const wk = WEEK_ZH[now.getDay()];
+  document.getElementById('greetingDate').textContent =
+    `${yr}年${mo}月${dy}日　${wk}`;
+}
+
+// ── Daily rune (based on date, same for everyone) ──
+function setDailyRune() {
+  const now = new Date();
+  const dayOfYear = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 86400000);
+  const rune = RUNES[dayOfYear % RUNES.length];
+  document.getElementById('runeSymbol').textContent = rune.symbol;
+  document.getElementById('runeName').textContent   = rune.name;
+  document.getElementById('runeZh').textContent     = rune.zh;
+  document.getElementById('runeCore').textContent   = rune.core;
+  document.getElementById('runeInsight').textContent = rune.insight;
+  document.getElementById('runeAction').textContent  = rune.action;
+}
+
+function toggleRuneDetail() {
+  const detail = document.getElementById('runeDetail');
+  const btn    = document.getElementById('revealBtnText');
+  const open   = detail.classList.toggle('open');
+  btn.textContent = open ? '收起 ▴' : '展開今日啟示 ▾';
+}
+
+// ── Chakra energy (based on day of week, fixed affirmation by date) ──
+function setChakraEnergy() {
+  const now = new Date();
+  const dow = now.getDay(); // 0=Sun
+  // Mon=0...Sun=6 mapping: getDay() 1→Mon, 0→Sun
+  const chakraIdx = dow === 0 ? 6 : dow - 1;
+  const chakraId  = DAY_CHAKRA[chakraIdx];
+  const card      = chakraCards[chakraId];
+
+  // Fixed affirmation: use day-of-year as seed
+  const dayOfYear = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 86400000);
+  const affirmation = card.affirmations[dayOfYear % card.affirmations.length];
+
+  document.getElementById('chakraBar').style.background = card.color;
+  document.getElementById('chakraName').textContent     = card.chakra;
+  document.getElementById('chakraName').style.color     = card.color;
+  document.getElementById('chakraKeywords').textContent = card.keywords;
+  document.getElementById('chakraAffirmation').textContent = `「${affirmation}」`;
+}
+
+// ── Intention ──
+function intentionKey() { return `morning_intention_${todayStr()}`; }
+
+function loadIntention() {
+  const saved = localStorage.getItem(intentionKey());
+  const input  = document.getElementById('intentionInput');
+  const savedEl = document.getElementById('intentionSaved');
+  const savedTxt = document.getElementById('intentionSavedText');
+  if (saved) {
+    input.style.display = 'none';
+    savedEl.classList.add('visible');
+    savedTxt.textContent = '「' + saved + '」';
+  } else {
+    input.style.display = 'block';
+    savedEl.classList.remove('visible');
+  }
+}
+
+function saveIntention(val) {
+  if (!val.trim()) return;
+  localStorage.setItem(intentionKey(), val.trim());
+  loadIntention();
+}
+
+function editIntention() {
+  localStorage.removeItem(intentionKey());
+  loadIntention();
+  setTimeout(() => document.getElementById('intentionInput').focus(), 50);
+}
+
+document.getElementById('intentionInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    saveIntention(e.target.value);
+    e.target.blur();
+  }
+});
+document.getElementById('intentionInput').addEventListener('blur', e => {
+  if (e.target.value.trim()) saveIntention(e.target.value);
+});
+
+// ── Tasks ──
+function tasksKey() { return `morning_tasks_${todayStr()}`; }
+
+function loadTasks() {
+  return JSON.parse(localStorage.getItem(tasksKey()) || '[{"text":"","done":false},{"text":"","done":false},{"text":"","done":false}]');
+}
+
+function saveTasks(tasks) {
+  localStorage.setItem(tasksKey(), JSON.stringify(tasks));
+}
+
+function renderTasks() {
+  const tasks = loadTasks();
+  const list  = document.getElementById('taskList');
+  list.innerHTML = '';
+  tasks.forEach((task, i) => {
+    const item = document.createElement('div');
+    item.className = 'task-item';
+
+    const cb = document.createElement('div');
+    cb.className = 'task-checkbox' + (task.done ? ' done' : '');
+    cb.addEventListener('click', () => {
+      const t = loadTasks();
+      t[i].done = !t[i].done;
+      saveTasks(t);
+      renderTasks();
+    });
+
+    const inp = document.createElement('input');
+    inp.type = 'text';
+    inp.className = 'task-input' + (task.done ? ' done' : '');
+    inp.value     = task.text;
+    inp.placeholder = `第 ${i + 1} 件重要的事`;
+    inp.maxLength = 60;
+    inp.addEventListener('input', () => {
+      const t = loadTasks();
+      t[i].text = inp.value;
+      saveTasks(t);
+    });
+    inp.addEventListener('keydown', e => {
+      if (e.key === 'Enter') inp.blur();
+    });
+
+    item.appendChild(cb);
+    item.appendChild(inp);
+    list.appendChild(item);
+  });
+}
+
+// ── Streak ──
+function ritualKey(dateStr) { return `morning_ritual_${dateStr}`; }
+
+function getStreak() {
+  let streak = 0;
+  const today = new Date();
+  for (let i = 0; i < 365; i++) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    if (localStorage.getItem(ritualKey(key))) {
+      streak++;
+    } else {
+      break;
+    }
+  }
+  return streak;
+}
+
+function updateStreak() {
+  const n = getStreak();
+  const el = document.getElementById('streakText');
+  if (n === 0) {
+    el.innerHTML = '今天是你第一次晨間儀式，開始美好的習慣吧';
+  } else {
+    el.innerHTML = `你已連續完成 <span class="streak-num">${n}</span> 天的晨間儀式`;
+  }
+}
+
+// ── Start day ──
+function startDay() {
+  const btn = document.getElementById('startBtn');
+  btn.classList.add('fired');
+  btn.disabled = true;
+
+  // Record ritual
+  localStorage.setItem(ritualKey(todayStr()), '1');
+
+  showToast('🌅 美好的一天開始了！');
+
+  setTimeout(() => {
+    location.href = '/index.html';
+  }, 2800);
+}
+
+// ── Toast ──
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ── Init ──
+setDate();
+updateClock();
+setInterval(updateClock, 1000);
+setDailyRune();
+setChakraEnergy();
+loadIntention();
+renderTasks();
+updateStreak();
+</script>
+</body>
+</html>

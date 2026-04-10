@@ -1,10 +1,20 @@
 {
   "hosting": {
     "public": "public",
-    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
     "rewrites": [
-      { "source": "/api/fetch-title", "function": "fetchTitle" },
-      { "source": "**", "destination": "/index.html" }
+      {
+        "source": "/api/fetch-title",
+        "function": "fetchTitle"
+      },
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
     ]
   },
   "functions": [
@@ -22,5 +32,21 @@
   "firestore": {
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
+  },
+  "emulators": {
+    "functions": {
+      "port": 5001
+    },
+    "firestore": {
+      "port": 8080
+    },
+    "ui": {
+      "enabled": true,
+      "port": 4000
+    },
+    "hosting": {
+      "port": 5000
+    },
+    "singleProjectMode": true
   }
 }
