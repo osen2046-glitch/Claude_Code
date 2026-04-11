@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🍅 番茄鐘</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #07081a;
+      --bg2:       #0c0e24;
+      --surface:   #111328;
+      --border:    #2a2d4a;
+      --gold:      #D4A84B;
+      --gold-light:#F0CF82;
+      --gold-dim:  #8a6a28;
+      --tomato:    #E74C3C;
+      --tomato-dim:#7a1f18;
+      --text:      #e8dfd0;
+      --text-muted:#7a7898;
+      --silver:    #b0b8cc;
+      --glow-red:  rgba(231,76,60,.4);
+    }
+
+    @keyframes fade-up {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes shimmer {
+      0%   { background-position: -200% center; }
+      100% { background-position:  200% center; }
+    }
+    @keyframes star-twinkle {
+      0%,100% { opacity: .15; }
+      50%      { opacity: .85; }
+    }
+    @keyframes pulse-ring {
+      0%   { box-shadow: 0 0 0 0 var(--ring-color, rgba(231,76,60,.5)); }
+      70%  { box-shadow: 0 0 0 24px rgba(231,76,60,0); }
+      100% { box-shadow: 0 0 0 0 rgba(231,76,60,0); }
+    }
+    @keyframes tomato-bounce {
+      0%,100% { transform: translateY(0); }
+      50%      { transform: translateY(-4px); }
+    }
+    @keyframes flip-in {
+      0%   { transform: rotateY(90deg) scale(.88); opacity: 0; }
+      65%  { transform: rotateY(-5deg) scale(1.02); opacity: 1; }
+      100% { transform: rotateY(0deg) scale(1); }
+    }
+    @keyframes count-pop {
+      0%   { transform: scale(1); }
+      40%  { transform: scale(1.4); }
+      100% { transform: scale(1); }
+    }
+
+    body {
+      font-family: 'Segoe UI', 'PingFang TC', 'Microsoft JhengHei', serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .stars { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+    .star {
+      position: absolute; width: 2px; height: 2px;
+      background: #fff; border-radius: 50%;
+      animation: star-twinkle var(--dur,3s) ease-in-out infinite;
+      animation-delay: var(--delay,0s);
+    }
+
+    /* ── Header ── */
+    header {
+      position: sticky; top: 0; z-index: 100;
+      background: linear-gradient(180deg, rgba(7,8,26,.98), rgba(7,8,26,.9));
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+      display: flex; align-items: center; gap: 14px;
+      backdrop-filter: blur(12px);
+    }
+    header h1 {
+      font-size: 1.1rem; font-weight: 700;
+      background: linear-gradient(135deg, var(--gold-light), var(--gold), #E74C3C);
+      background-size: 200% auto;
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: shimmer 5s linear infinite;
+      letter-spacing: .1em; white-space: nowrap;
+    }
+    .header-right {
+      margin-left: auto; display: flex; align-items: center;
+      gap: 8px; flex-wrap: wrap;
+    }
+    .nav-link {
+      text-decoration: none; font-size: .8rem; font-weight: 600;
+      color: var(--text-muted); padding: 4px 10px;
+      border-radius: 999px; border: 1px solid var(--border);
+      transition: color .2s, border-color .2s; white-space: nowrap;
+    }
+    .nav-link:hover { color: var(--silver); border-color: #4a5070; }
+    .user-name { font-size: .82rem; color: var(--text-muted); white-space: nowrap; }
+    .btn-hdr {
+      padding: 4px 11px; border-radius: 6px; border: 1px solid var(--border);
+      background: transparent; cursor: pointer; font-size: .8rem;
+      font-family: inherit; font-weight: 600; color: var(--text-muted);
+      transition: border-color .2s, color .2s; white-space: nowrap;
+    }
+    .btn-hdr:hover { border-color: #4a5070; color: var(--silver); }
+
+    /* ── Main ── */
+    .main {
+      position: relative; z-index: 1;
+      max-width: 640px; margin: 0 auto;
+      padding: 36px 20px 64px;
+      display: flex; flex-direction: column; align-items: center; gap: 28px;
+    }
+
+    /* ── Mode tabs ── */
+    .mode-tabs {
+      display: flex; gap: 8px; background: rgba(17,19,40,.7);
+      border: 1px solid var(--border); border-radius: 12px; padding: 6px;
+    }
+    .mode-tab {
+      padding: 7px 18px; border-radius: 8px; border: none;
+      background: transparent; color: var(--text-muted);
+      font-family: inherit; font-size: .82rem; font-weight: 600;
+      cursor: pointer; transition: all .2s; letter-spacing: .04em;
+    }
+    .mode-tab.active {
+      color: #fff; font-weight: 700;
+    }
+    .mode-tab.focus.active  { background: rgba(231,76,60,.25); color: #ff8070; }
+    .mode-tab.short.active  { color: #fff; }
+    .mode-tab.long.active   { background: rgba(212,168,75,.2); color: var(--gold-light); }
+
+    /* ── Timer ring ── */
+    .timer-wrap {
+      position: relative; display: flex; align-items: center; justify-content: center;
+    }
+    .timer-svg { transform: rotate(-90deg); overflow: visible; }
+    .timer-track {
+      fill: none; stroke: rgba(255,255,255,.06); stroke-width: 10;
+    }
+    .timer-progress {
+      fill: none; stroke-width: 10;
+      stroke-linecap: round;
+      transition: stroke-dashoffset .9s linear, stroke .5s ease;
+    }
+    .timer-inner {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%,-50%);
+      text-align: center; pointer-events: none;
+    }
+    .timer-display {
+      font-size: 3.6rem; font-weight: 300; letter-spacing: .04em;
+      color: var(--text); line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+    .timer-mode-label {
+      font-size: .78rem; letter-spacing: .18em; color: var(--text-muted);
+      text-transform: uppercase; margin-top: 6px;
+    }
+    .timer-wrap.pulsing {
+      animation: pulse-ring 1.5s ease-out infinite;
+    }
+
+    /* ── Controls ── */
+    .controls {
+      display: flex; gap: 14px; align-items: center;
+    }
+    .ctrl-btn {
+      padding: 11px 28px; border-radius: 999px; border: 1px solid var(--border);
+      background: transparent; color: var(--text-muted);
+      font-family: inherit; font-size: .9rem; font-weight: 600;
+      cursor: pointer; transition: all .25s; letter-spacing: .06em;
+    }
+    .ctrl-btn.primary {
+      border-color: var(--tomato); color: var(--tomato);
+      box-shadow: 0 0 16px rgba(231,76,60,.2);
+    }
+    .ctrl-btn.primary:hover {
+      background: rgba(231,76,60,.12); box-shadow: 0 0 28px rgba(231,76,60,.4);
+    }
+    .ctrl-btn:hover { border-color: #4a5070; color: var(--silver); }
+    .ctrl-btn:active { transform: scale(.96); }
+    .ctrl-btn:disabled { opacity: .35; cursor: default; transform: none; }
+
+    /* ── Tomato counter ── */
+    .tomato-counter {
+      text-align: center;
+    }
+    .tomato-label {
+      font-size: .72rem; color: var(--text-muted); letter-spacing: .14em;
+      text-transform: uppercase; margin-bottom: 8px;
+    }
+    .tomato-icons {
+      display: flex; gap: 6px; justify-content: center; flex-wrap: wrap;
+      min-height: 28px;
+    }
+    .tomato-icon {
+      font-size: 1.35rem; line-height: 1;
+      transition: transform .2s;
+    }
+    .tomato-icon.new { animation: count-pop .4s cubic-bezier(.34,1.56,.64,1); }
+    .tomato-icon.dim { opacity: .25; filter: grayscale(1); }
+
+    /* ── Section card ── */
+    .section-card {
+      width: 100%;
+      background: linear-gradient(160deg, #141728, #0d0f26);
+      border: 1px solid var(--border); border-radius: 16px;
+      padding: 22px 24px;
+      animation: fade-up .5s ease both;
+    }
+    .section-title {
+      font-size: .72rem; font-weight: 700; letter-spacing: .18em;
+      color: var(--gold-dim); text-transform: uppercase;
+      display: flex; align-items: center; gap: 10px; margin-bottom: 16px;
+    }
+    .section-title::after {
+      content: ''; flex: 1; height: 1px;
+      background: linear-gradient(90deg, var(--border), transparent);
+    }
+
+    /* ── Task area ── */
+    .task-select, .task-input {
+      width: 100%; padding: 10px 14px; border-radius: 10px;
+      border: 1px solid var(--border); background: rgba(255,255,255,.04);
+      color: var(--text); font-family: inherit; font-size: .9rem;
+      outline: none; transition: border-color .2s;
+    }
+    .task-select:focus, .task-input:focus { border-color: var(--gold-dim); }
+    .task-select option { background: #111328; }
+    .current-task-display {
+      font-size: .95rem; color: var(--gold); letter-spacing: .06em;
+      line-height: 1.6; margin-top: 10px;
+      min-height: 24px;
+    }
+
+    /* ── Chakra break card ── */
+    .chakra-break-card {
+      display: none; width: 100%;
+      border-radius: 16px; overflow: hidden;
+      border: 1px solid var(--border);
+      animation: flip-in .6s cubic-bezier(.34,1.56,.64,1) both;
+    }
+    .chakra-break-card.visible { display: block; }
+    .chakra-bar { height: 4px; width: 100%; }
+    .chakra-break-inner { padding: 22px 24px; background: linear-gradient(160deg, #141728, #0d0f26); }
+    .chakra-break-label {
+      font-size: .7rem; letter-spacing: .2em; text-transform: uppercase;
+      color: var(--text-muted); margin-bottom: 6px;
+    }
+    .chakra-name-big { font-size: 1.1rem; font-weight: 700; margin-bottom: 4px; }
+    .chakra-keywords { font-size: .78rem; color: var(--text-muted); letter-spacing: .06em; margin-bottom: 14px; }
+    .chakra-affirmation {
+      font-size: 1rem; line-height: 1.75; color: var(--silver);
+      letter-spacing: .05em; font-style: italic;
+    }
+    .chakra-hint { font-size: .72rem; color: var(--text-muted); margin-top: 10px; letter-spacing: .08em; }
+
+    /* ── Notification overlay ── */
+    .notify-overlay {
+      display: none; position: fixed; inset: 0; z-index: 200;
+      background: rgba(7,8,26,.82); backdrop-filter: blur(8px);
+      align-items: center; justify-content: center;
+    }
+    .notify-overlay.show { display: flex; }
+    .notify-box {
+      background: linear-gradient(160deg, #1a1d3a, #111328);
+      border: 1px solid var(--border); border-radius: 20px;
+      padding: 40px 36px; text-align: center; max-width: 340px; width: 90%;
+      animation: flip-in .5s cubic-bezier(.34,1.56,.64,1);
+    }
+    .notify-emoji { font-size: 3rem; margin-bottom: 16px; display: block; }
+    .notify-title { font-size: 1.1rem; font-weight: 700; color: var(--gold); margin-bottom: 8px; letter-spacing: .08em; }
+    .notify-msg { font-size: .9rem; color: var(--silver); line-height: 1.65; margin-bottom: 20px; }
+    .notify-countdown { font-size: .8rem; color: var(--text-muted); margin-bottom: 20px; }
+    .notify-btn {
+      padding: 10px 32px; border-radius: 999px;
+      border: 1px solid var(--tomato); background: transparent;
+      color: var(--tomato); font-family: inherit; font-size: .9rem;
+      font-weight: 600; cursor: pointer; transition: background .2s;
+    }
+    .notify-btn:hover { background: rgba(231,76,60,.1); }
+
+    /* ── Settings ── */
+    .settings-toggle {
+      width: 100%; padding: 10px 16px; border-radius: 10px;
+      border: 1px solid var(--border); background: transparent;
+      color: var(--text-muted); font-family: inherit; font-size: .82rem;
+      cursor: pointer; transition: all .2s; text-align: left;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .settings-toggle:hover { border-color: #4a5070; color: var(--silver); }
+    .settings-toggle .arrow { transition: transform .2s; }
+    .settings-toggle.open .arrow { transform: rotate(180deg); }
+    .settings-body { display: none; margin-top: 14px; }
+    .settings-toggle.open + .settings-body { display: block; }
+    .settings-row { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+    .settings-row:last-child { margin-bottom: 0; }
+    .settings-label { font-size: .82rem; color: var(--silver); width: 100px; flex-shrink: 0; }
+    .settings-opts { display: flex; gap: 8px; flex-wrap: wrap; }
+    .setting-opt {
+      padding: 5px 14px; border-radius: 999px;
+      border: 1px solid var(--border); background: transparent;
+      color: var(--text-muted); font-family: inherit; font-size: .8rem;
+      cursor: pointer; transition: all .2s;
+    }
+    .setting-opt.sel { border-color: var(--gold); color: var(--gold); background: rgba(212,168,75,.08); }
+    .setting-opt:hover:not(.sel) { border-color: #4a5070; color: var(--silver); }
+
+    /* ── Stats ── */
+    .stats-row { display: flex; gap: 16px; }
+    .stat-block {
+      flex: 1; background: rgba(255,255,255,.03); border-radius: 10px;
+      padding: 14px 16px; text-align: center; border: 1px solid rgba(42,45,74,.5);
+    }
+    .stat-val { font-size: 1.5rem; font-weight: 700; color: var(--gold); }
+    .stat-lbl { font-size: .72rem; color: var(--text-muted); letter-spacing: .1em; margin-top: 4px; }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed; bottom: 28px; right: 28px;
+      background: #1a1d3a; color: var(--silver);
+      border: 1px solid var(--border); padding: 10px 20px;
+      border-radius: 10px; font-size: .85rem; opacity: 0;
+      transition: opacity .3s; pointer-events: none; z-index: 300;
+    }
+    .toast.show { opacity: 1; }
+
+    @media (max-width: 480px) {
+      .timer-display { font-size: 2.8rem; }
+      .mode-tabs { flex-wrap: wrap; }
+      .stats-row { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="stars" id="stars"></div>
+
+<header>
+  <h1>🍅 番茄鐘</h1>
+  <div class="header-right">
+    <a class="nav-link" href="/index.html">📰 文章收藏</a>
+    <a class="nav-link" href="/bulletin.html">📢 公告欄</a>
+    <a class="nav-link" href="/runes.html">🔮 神諭</a>
+    <a class="nav-link" href="/dream.html">🌙 解夢</a>
+    <a class="nav-link" href="/rainbow.html">🌈 彩虹卡</a>
+    <a class="nav-link" href="/morning.html">🌅 晨間儀式</a>
+    <a class="nav-link" href="/iching.html">☯ 易經占卜</a>
+    <a class="nav-link" href="/pomodoro.html">🍅 番茄鐘</a>
+    <button class="btn-hdr" onclick="location.href='/settings.html'">設定</button>
+  </div>
+</header>
+
+<div class="main">
+
+  <!-- Mode tabs -->
+  <div class="mode-tabs" id="modeTabs">
+    <button class="mode-tab focus active" onclick="setMode('focus')">🍅 專注</button>
+    <button class="mode-tab short" onclick="setMode('short')">🌿 短休息</button>
+    <button class="mode-tab long"  onclick="setMode('long')">✨ 長休息</button>
+  </div>
+
+  <!-- Timer -->
+  <div class="timer-wrap" id="timerWrap">
+    <svg class="timer-svg" id="timerSvg" width="220" height="220" viewBox="0 0 220 220">
+      <circle class="timer-track" cx="110" cy="110" r="100"/>
+      <circle class="timer-progress" id="timerProgress" cx="110" cy="110" r="100"/>
+    </svg>
+    <div class="timer-inner">
+      <div class="timer-display" id="timerDisplay">25:00</div>
+      <div class="timer-mode-label" id="timerModeLabel">專注中</div>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <button class="ctrl-btn" onclick="resetTimer()" title="重置">↺ 重置</button>
+    <button class="ctrl-btn primary" id="mainBtn" onclick="toggleTimer()">▶ 開始</button>
+    <button class="ctrl-btn" onclick="skipPhase()" title="跳過">⏭ 跳過</button>
+  </div>
+
+  <!-- Tomato counter -->
+  <div class="tomato-counter">
+    <div class="tomato-label">今日完成番茄</div>
+    <div class="tomato-icons" id="tomatoIcons"></div>
+  </div>
+
+  <!-- Current task -->
+  <div class="section-card" style="animation-delay:.1s">
+    <div class="section-title">現在專注於⋯⋯</div>
+    <div id="taskInputArea"></div>
+    <div class="current-task-display" id="currentTaskDisplay"></div>
+  </div>
+
+  <!-- Chakra break card -->
+  <div class="chakra-break-card" id="chakraBreakCard">
+    <div class="chakra-bar" id="chakraBarEl"></div>
+    <div class="chakra-break-inner">
+      <div class="chakra-break-label">休息時的脈輪能量</div>
+      <div class="chakra-name-big" id="chakraNameEl"></div>
+      <div class="chakra-keywords" id="chakraKeywordsEl"></div>
+      <div class="chakra-affirmation" id="chakraAffirmEl">「」</div>
+      <div class="chakra-hint">休息時，讓這句話陪伴你 🌿</div>
+    </div>
+  </div>
+
+  <!-- Settings -->
+  <div class="section-card" style="animation-delay:.2s">
+    <button class="settings-toggle" id="settingsToggle" onclick="toggleSettings()">
+      <span>⚙️ 時長設定</span>
+      <span class="arrow">▾</span>
+    </button>
+    <div class="settings-body" id="settingsBody">
+      <div class="settings-row">
+        <span class="settings-label">🍅 專注</span>
+        <div class="settings-opts" id="opts-focus"></div>
+      </div>
+      <div class="settings-row">
+        <span class="settings-label">🌿 短休息</span>
+        <div class="settings-opts" id="opts-short"></div>
+      </div>
+      <div class="settings-row">
+        <span class="settings-label">✨ 長休息</span>
+        <div class="settings-opts" id="opts-long"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="section-card" style="animation-delay:.3s">
+    <div class="section-title">今日統計</div>
+    <div class="stats-row">
+      <div class="stat-block">
+        <div class="stat-val" id="statTomatoes">0</div>
+        <div class="stat-lbl">完成番茄</div>
+      </div>
+      <div class="stat-block">
+        <div class="stat-val" id="statMinutes">0</div>
+        <div class="stat-lbl">專注分鐘</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Notify overlay -->
+<div class="notify-overlay" id="notifyOverlay">
+  <div class="notify-box">
+    <span class="notify-emoji" id="notifyEmoji">🍅</span>
+    <div class="notify-title" id="notifyTitle">時間到了</div>
+    <div class="notify-msg" id="notifyMsg"></div>
+    <div class="notify-countdown" id="notifyCountdown"></div>
+    <button class="notify-btn" onclick="dismissNotify()">好的，繼續</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="/js/dream-data.js"></script>
+<script>
+// ── Starfield ──
+(function() {
+  const c = document.getElementById('stars');
+  for (let i = 0; i < 70; i++) {
+    const s = document.createElement('div');
+    s.className = 'star';
+    s.style.cssText = `left:${Math.random()*100}%;top:${Math.random()*100}%;--dur:${2+Math.random()*4}s;--delay:${Math.random()*5}s`;
+    c.appendChild(s);
+  }
+})();
+
+// ── Toast ──
+function showToast(msg, ms = 2200) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), ms);
+}
+
+// ── Date helpers ──
+function todayStr() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+// ── Settings ──
+const SETTING_OPTS = {
+  focus: [15, 25, 50],
+  short: [5, 10],
+  long:  [15, 20, 30],
+};
+const DEFAULT_SETTINGS = { focus: 25, short: 5, long: 15 };
+
+function loadSettings() {
+  try { return Object.assign({}, DEFAULT_SETTINGS, JSON.parse(localStorage.getItem('pomodoro_settings') || '{}')); }
+  catch { return {...DEFAULT_SETTINGS}; }
+}
+function saveSettings(s) { localStorage.setItem('pomodoro_settings', JSON.stringify(s)); }
+let settings = loadSettings();
+
+function buildSettingsUI() {
+  ['focus','short','long'].forEach(key => {
+    const wrap = document.getElementById('opts-' + key);
+    wrap.innerHTML = '';
+    SETTING_OPTS[key].forEach(val => {
+      const btn = document.createElement('button');
+      btn.className = 'setting-opt' + (settings[key] === val ? ' sel' : '');
+      btn.textContent = val + ' 分';
+      btn.onclick = () => {
+        settings[key] = val;
+        saveSettings(settings);
+        buildSettingsUI();
+        if (currentMode === key && !running) {
+          timeLeft = val * 60;
+          totalTime = timeLeft;
+          updateDisplay();
+          updateProgress();
+        }
+        showToast(modeLabel(key) + '時長設為 ' + val + ' 分鐘');
+      };
+      wrap.appendChild(btn);
+    });
+  });
+}
+buildSettingsUI();
+
+function toggleSettings() {
+  const toggle = document.getElementById('settingsToggle');
+  toggle.classList.toggle('open');
+}
+
+// ── Timer state ──
+let currentMode = 'focus'; // 'focus'|'short'|'long'
+let running = false;
+let timeLeft = settings.focus * 60;
+let totalTime = timeLeft;
+let timerId = null;
+let pomodoroCount = 0; // today's count within this session
+
+// ── SVG ring math ──
+const RADIUS = 100;
+const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
+document.getElementById('timerProgress').style.strokeDasharray = CIRCUMFERENCE;
+document.getElementById('timerProgress').style.strokeDashoffset = 0;
+
+// ── Mode colors ──
+const MODE_COLOR = {
+  focus: '#E74C3C',
+  short: null, // will be set from chakra
+  long:  '#D4A84B',
+};
+
+// ── Chakra for today ──
+const DAY_CHAKRA = ['root','sacral','solar','heart','throat','third_eye','crown'];
+function todayChakra() {
+  const dow = new Date().getDay(); // 0=sun
+  const idx = dow === 0 ? 6 : dow - 1;
+  return DAY_CHAKRA[idx];
+}
+const chakraId = todayChakra();
+const chakraCard = chakraCards[chakraId];
+MODE_COLOR.short = chakraCard ? chakraCard.color : '#4A90D9';
+
+// ── Chakra affirmation cycling ──
+function getNextAffirmation() {
+  if (!chakraCard) return '';
+  const affs = chakraCard.affirmations;
+  const key = 'pomodoro_chakra_index_' + todayStr();
+  let idx = parseInt(localStorage.getItem(key) || '0');
+  const aff = affs[idx % affs.length];
+  localStorage.setItem(key, String((idx + 1) % affs.length));
+  return aff;
+}
+
+// ── Update progress ring ──
+function updateProgress() {
+  const frac = totalTime > 0 ? timeLeft / totalTime : 0;
+  const offset = CIRCUMFERENCE * (1 - frac);
+  const prog = document.getElementById('timerProgress');
+  prog.style.strokeDashoffset = offset;
+  prog.style.stroke = currentModeColor();
+}
+
+function currentModeColor() {
+  return MODE_COLOR[currentMode] || '#E74C3C';
+}
+
+// ── Update display ──
+function updateDisplay() {
+  const m = Math.floor(timeLeft / 60);
+  const s = timeLeft % 60;
+  const str = String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+  document.getElementById('timerDisplay').textContent = str;
+  // Browser title
+  const labels = {focus:'專注中', short:'短休息', long:'長休息'};
+  document.title = running ? `[${str}] ${labels[currentMode]} - 番茄鐘` : '🍅 番茄鐘';
+}
+
+function modeLabel(m) {
+  return {focus:'專注', short:'短休息', long:'長休息'}[m] || m;
+}
+
+// ── Set mode ──
+function setMode(mode, suppressReset = false) {
+  if (running) stopTimer();
+  currentMode = mode;
+
+  // Update tabs
+  document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+  document.querySelector('.mode-tab.' + (mode === 'focus' ? 'focus' : mode === 'short' ? 'short' : 'long')).classList.add('active');
+
+  // Update label
+  document.getElementById('timerModeLabel').textContent = modeLabel(mode);
+
+  if (!suppressReset) {
+    timeLeft = settings[mode] * 60;
+    totalTime = timeLeft;
+  }
+
+  updateDisplay();
+  updateProgress();
+  document.getElementById('mainBtn').textContent = '▶ 開始';
+
+  // Chakra card
+  const card = document.getElementById('chakraBreakCard');
+  if (mode !== 'focus') {
+    showChakraCard();
+    card.classList.add('visible');
+  } else {
+    card.classList.remove('visible');
+  }
+
+  // Ring glow color
+  document.getElementById('timerWrap').style.setProperty('--ring-color', currentModeColor() + '80');
+}
+
+// ── Show chakra break card ──
+function showChakraCard() {
+  if (!chakraCard) return;
+  const barEl  = document.getElementById('chakraBarEl');
+  const nameEl = document.getElementById('chakraNameEl');
+  const keyEl  = document.getElementById('chakraKeywordsEl');
+  const affEl  = document.getElementById('chakraAffirmEl');
+
+  barEl.style.background = chakraCard.color;
+  nameEl.textContent = chakraCard.chakra;
+  nameEl.style.color = chakraCard.color;
+  keyEl.textContent  = chakraCard.keywords;
+  const aff = getNextAffirmation();
+  affEl.textContent = aff ? `「${aff}」` : '';
+}
+
+// ── Toggle timer ──
+function toggleTimer() {
+  if (running) pauseTimer();
+  else startTimer();
+}
+
+function startTimer() {
+  running = true;
+  document.getElementById('mainBtn').textContent = '⏸ 暫停';
+  document.getElementById('timerWrap').classList.add('pulsing');
+  timerId = setInterval(() => {
+    if (timeLeft > 0) {
+      timeLeft--;
+      updateDisplay();
+      updateProgress();
+    } else {
+      clearInterval(timerId);
+      timerId = null;
+      running = false;
+      document.getElementById('timerWrap').classList.remove('pulsing');
+      onPhaseComplete();
+    }
+  }, 1000);
+}
+
+function pauseTimer() {
+  running = false;
+  clearInterval(timerId); timerId = null;
+  document.getElementById('mainBtn').textContent = '▶ 開始';
+  document.getElementById('timerWrap').classList.remove('pulsing');
+  document.title = '🍅 番茄鐘';
+}
+
+function stopTimer() {
+  pauseTimer();
+}
+
+function resetTimer() {
+  stopTimer();
+  timeLeft = settings[currentMode] * 60;
+  totalTime = timeLeft;
+  updateDisplay();
+  updateProgress();
+  document.getElementById('mainBtn').textContent = '▶ 開始';
+}
+
+function skipPhase() {
+  stopTimer();
+  onPhaseComplete();
+}
+
+// ── Phase complete ──
+let notifyCountdownTimer = null;
+let notifyAutoSeconds = 4;
+
+function onPhaseComplete() {
+  playChime();
+
+  if (currentMode === 'focus') {
+    recordTomato();
+    const total = getTodayCount();
+    const emoji = '🌿';
+    const msg = '辛苦了，休息一下 🌿\n\n今日已完成 ' + total + ' 個番茄';
+    const nextMode = total % 4 === 0 ? 'long' : 'short';
+    showNotify('🌿', '專注結束', msg, nextMode);
+  } else {
+    showNotify('🍅', '休息結束', '準備好了嗎？繼續專注 🍅', 'focus');
+  }
+}
+
+function showNotify(emoji, title, msg, nextMode) {
+  document.getElementById('notifyEmoji').textContent = emoji;
+  document.getElementById('notifyTitle').textContent = title;
+  document.getElementById('notifyMsg').textContent   = msg;
+  document.getElementById('notifyOverlay').classList.add('show');
+
+  let secs = notifyAutoSeconds;
+  document.getElementById('notifyCountdown').textContent = secs + ' 秒後自動開始下一階段…';
+
+  notifyCountdownTimer = setInterval(() => {
+    secs--;
+    if (secs <= 0) {
+      clearInterval(notifyCountdownTimer);
+      dismissNotify();
+      setMode(nextMode);
+      startTimer();
+    } else {
+      document.getElementById('notifyCountdown').textContent = secs + ' 秒後自動開始下一階段…';
+    }
+  }, 1000);
+
+  // Store next mode for manual dismiss
+  document.getElementById('notifyOverlay').dataset.nextMode = nextMode;
+}
+
+function dismissNotify() {
+  clearInterval(notifyCountdownTimer);
+  const nextMode = document.getElementById('notifyOverlay').dataset.nextMode;
+  document.getElementById('notifyOverlay').classList.remove('show');
+  if (nextMode) setMode(nextMode);
+}
+
+// ── Chime ──
+function playChime() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.value = 528;
+    osc.type = 'sine';
+    gain.gain.setValueAtTime(0.18, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.2);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 1.3);
+    // Second harmonic
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.connect(gain2); gain2.connect(ctx.destination);
+    osc2.frequency.value = 660;
+    osc2.type = 'sine';
+    gain2.gain.setValueAtTime(0.1, ctx.currentTime + 0.15);
+    gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.0);
+    osc2.start(ctx.currentTime + 0.15);
+    osc2.stop(ctx.currentTime + 1.1);
+  } catch(e) {}
+}
+
+// ── Stats & tomato storage ──
+function statsKey() { return 'pomodoro_' + todayStr(); }
+
+function loadStats() {
+  try { return JSON.parse(localStorage.getItem(statsKey()) || '{"count":0,"minutes":0}'); }
+  catch { return {count:0, minutes:0}; }
+}
+function saveStats(s) { localStorage.setItem(statsKey(), JSON.stringify(s)); }
+
+function getTodayCount() { return loadStats().count; }
+
+function recordTomato() {
+  const s = loadStats();
+  s.count++;
+  s.minutes += settings.focus;
+  saveStats(s);
+  renderStats();
+  renderTomatoes();
+}
+
+function renderStats() {
+  const s = loadStats();
+  document.getElementById('statTomatoes').textContent = s.count;
+  document.getElementById('statMinutes').textContent  = s.minutes;
+}
+
+function renderTomatoes() {
+  const count = getTodayCount();
+  const wrap = document.getElementById('tomatoIcons');
+  wrap.innerHTML = '';
+  // Show up to 20 visible, rest dimmed placeholder
+  const show = Math.min(count, 20);
+  for (let i = 0; i < show; i++) {
+    const span = document.createElement('span');
+    span.className = 'tomato-icon';
+    span.textContent = '🍅';
+    // Dim every 4th group start
+    if (i > 0 && i % 4 === 0) {
+      const sep = document.createElement('span');
+      sep.style.cssText = 'width:8px;display:inline-block';
+      wrap.appendChild(sep);
+    }
+    wrap.appendChild(span);
+  }
+  if (count === 0) {
+    wrap.innerHTML = '<span style="font-size:.8rem;color:var(--text-muted)">完成第一個番茄後出現 🍅</span>';
+  }
+}
+
+// ── Task area ──
+function buildTaskArea() {
+  const key = 'morning_tasks_' + todayStr();
+  const tasksRaw = localStorage.getItem(key);
+  let tasks = [];
+  if (tasksRaw) {
+    try {
+      const parsed = JSON.parse(tasksRaw);
+      tasks = parsed.filter(t => t.text && t.text.trim()).map(t => t.text.trim());
+    } catch {}
+  }
+
+  const area = document.getElementById('taskInputArea');
+  const disp = document.getElementById('currentTaskDisplay');
+
+  const savedTask = localStorage.getItem('pomodoro_current_task') || '';
+  if (savedTask) disp.textContent = '📌 ' + savedTask;
+
+  if (tasks.length > 0) {
+    const sel = document.createElement('select');
+    sel.className = 'task-select';
+    const defaultOpt = document.createElement('option');
+    defaultOpt.value = ''; defaultOpt.textContent = '── 選擇今日任務 ──';
+    sel.appendChild(defaultOpt);
+    tasks.forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t; opt.textContent = t;
+      if (t === savedTask) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    // Custom option
+    const customOpt = document.createElement('option');
+    customOpt.value = '__custom__'; customOpt.textContent = '✏️ 手動輸入…';
+    sel.appendChild(customOpt);
+
+    sel.onchange = () => {
+      if (sel.value === '__custom__') {
+        area.innerHTML = '';
+        buildCustomInput(area, disp);
+      } else if (sel.value) {
+        localStorage.setItem('pomodoro_current_task', sel.value);
+        disp.textContent = '📌 ' + sel.value;
+      } else {
+        disp.textContent = '';
+      }
+    };
+    area.appendChild(sel);
+  } else {
+    buildCustomInput(area, disp);
+  }
+}
+
+function buildCustomInput(area, disp) {
+  const inp = document.createElement('input');
+  inp.type = 'text'; inp.className = 'task-input';
+  inp.placeholder = '輸入現在要專注的任務…';
+  inp.value = localStorage.getItem('pomodoro_current_task') || '';
+  inp.oninput = () => {
+    const v = inp.value.trim();
+    if (v) { localStorage.setItem('pomodoro_current_task', v); disp.textContent = '📌 ' + v; }
+    else { localStorage.removeItem('pomodoro_current_task'); disp.textContent = ''; }
+  };
+  area.appendChild(inp);
+}
+
+// ── Init ──
+setMode('focus', true);
+buildTaskArea();
+renderStats();
+renderTomatoes();
+updateDisplay();
+updateProgress();
+</script>
+</body>
+</html>
